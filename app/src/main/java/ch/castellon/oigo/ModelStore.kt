@@ -1,4 +1,4 @@
-package dev.castellon.grok
+package ch.castellon.oigo
 
 import android.content.Context
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream

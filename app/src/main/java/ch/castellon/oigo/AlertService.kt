@@ -1,4 +1,4 @@
-package dev.castellon.grok
+package ch.castellon.oigo
 
 import android.app.Service
 import android.content.Intent

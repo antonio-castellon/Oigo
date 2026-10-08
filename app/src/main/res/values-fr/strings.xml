@@ -1,39 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Grok voix</string>
+    <string name="app_name">Oigo</string>
     <string name="channel_listen">Écoute</string>
     <string name="channel_alert">Alerte du micro</string>
     <string name="stop_listening">Arrêter</string>
-    <string name="boot_remind">Le téléphone a redémarré. Ouvrez Grok voix et appuyez sur le bouton. Le micro ne démarre pas seul.</string>
+    <string name="boot_remind">Le téléphone a redémarré. Ouvrez Oigo et appuyez sur le bouton. Le micro ne démarre pas seul.</string>
     <string name="mic_stopped">Le micro n\'écoute pas. Ouvrez l\'application et appuyez sur le bouton.</string>
     <string name="status_preparing">Préparation du micro</string>
     <string name="status_downloading">Téléchargement du modèle de phrase, %1$d%%</string>
-    <string name="status_listening">Écoute de la phrase clé</string>
+    <string name="status_listening">Mode conversation. Dis : Grok, et ce que tu veux lui dire. Ou dis : Grok, merci, pour fermer la conversation.</string>
+    <string name="status_your_turn">Dis grok, puis la question</string>
+    <string name="status_message_yes">Dis oui</string>
     <string name="status_talk">Conversation ouverte</string>
+    <string name="in_conversation">En conversation</string>
+    <string name="hello">Bonjour</string>
     <string name="status_thinking">Réflexion</string>
     <string name="status_model_failed">Le modèle de phrase n\'a pas pu être préparé</string>
-    <string name="status_idle">Appuyez sur le bouton. Puis dites la phrase clé.</string>
+    <string name="status_idle">Appuyez sur le bouton. Dites « Grok, » et ce que vous voulez dire.</string>
     <string name="status_need_mic">L\'autorisation du micro est nécessaire.</string>
     <string name="listen_button">Écouter</string>
+    <string name="listen_off">Ne plus écouter</string>
     <string name="settings">Réglages</string>
-    <string name="message_ask">Nouveau message de %1$s. Dites oui si vous voulez l\'entendre.</string>
+    <string name="message_ask">Nouveau message de %1$s. Si tu veux l\'entendre, dis oui, après le signal.</string>
+    <string name="message_ask_idle">Nouveau message de %1$s. Appuie sur écouter et dis oui, après le signal.</string>
+    <string name="message_waiting">Nouveau message. Appuie sur écouter.</string>
     <string name="message_hidden">L\'avis de %1$s n\'a pas de texte lisible.</string>
     <string name="message_body">%1$s dit : %2$s</string>
     <string name="messages_none">Aucun message récent de %1$s.</string>
     <string name="no_message">D\'accord. Je ne le lis pas.</string>
     <string name="bye">À bientôt.</string>
     <string name="need_key">La clé API manque. Ouvrez les réglages et collez la clé de la console xAI.</string>
+    <string name="need_key_banner">Saisissez la clé API dans les réglages.</string>
     <string name="fuel">J\'ai besoin de plus de carburant.</string>
     <string name="grok_failed">Je n\'ai pas pu joindre Grok.</string>
     <string name="option_off">Cette option est éteinte. Activez-la dans les réglages si vous la voulez.</string>
     <string name="need_call_permission">Il faut les contacts et, pour appeler, aussi le téléphone.</string>
     <string name="call_missing">Je ne trouve pas un contact nommé %1$s.</string>
-    <string name="call_many">Plusieurs contacts correspondent à %1$s. Dites un nom plus complet.</string>
+    <string name="call_many">Plusieurs contacts correspondent à %1$s. %2$s</string>
+    <string name="call_no_main">%1$s n\'a pas de numéro marqué comme principal.</string>
+    <string name="call_more">Et il y en a d\'autres.</string>
+    <string-array name="call_order">
+        <item>Un, %s.</item>
+        <item>Deux, %s.</item>
+        <item>Trois, %s.</item>
+        <item>Quatre, %s.</item>
+        <item>Cinq, %s.</item>
+        <item>Six, %s.</item>
+        <item>Sept, %s.</item>
+        <item>Huit, %s.</item>
+    </string-array>
     <string name="call_done">Appel de %1$s.</string>
     <string name="send_ready">WhatsApp est ouvert avec un brouillon pour %1$s. Vous appuyez encore sur envoyer.</string>
     <string name="whatsapp_missing">WhatsApp n\'est pas disponible pour ce numéro.</string>
     <string name="telegram_send_later">Envoyer un Telegram à un nom n\'est pas disponible. Lire les avis arrivés pendant que l\'option était active fonctionne.</string>
     <string name="settings_title">Réglages</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="trace_button">Envoyer les traces</string>
+    <string name="trace_help">Ouvre un e-mail pour antonio@castellon.ch avec le rapport et le fichier. Rien ne part seul : il faut encore l\'envoyer. Il ne contient ni la clé, ni le texte des messages, ni les numéros, ni les noms.</string>
+    <string name="trace_chooser">Envoyer les traces</string>
+    <string name="trace_id">Identifiant %1$s</string>
+    <string name="trace_failed">Aucune application ne peut envoyer le rapport.</string>
+    <string name="issues_link">Tickets</string>
+    <string name="company_link">castellon.ch</string>
+    <string name="author_name">Antonio Castellon</string>
     <string name="language">Langue</string>
     <string name="lang_system">Téléphone</string>
     <string name="wake_phrase">Phrase clé</string>
@@ -42,6 +71,7 @@
     <string name="api_key">Clé API xAI</string>
     <string name="api_key_help">L\'application Grok officielle ne partage pas sa session. Collez une fois la clé de console.x.ai. Elle reste sur ce téléphone.</string>
     <string name="model">Modèle</string>
+    <string name="voice_volume">Volume de la voix</string>
     <string name="alerts_title">Si le micro s\'arrête</string>
     <string name="alert_repeats">Avertissements parlés</string>
     <string name="alert_minutes">Minutes entre les avertissements</string>
@@ -59,4 +89,27 @@
     <string name="battery_help">Retirer l\'optimisation de batterie garde plus longtemps la notification d\'écoute. Si Android tue le processus, le micro reste fermé jusqu\'au bouton.</string>
     <string name="open_battery">Réglages batterie</string>
     <string name="open_listener">Accès aux notifications</string>
+    <string name="context_hours">Heures dont la conversation se souvient</string>
+    <string name="context_help">Pendant ce temps restent un court résumé et les dernières phrases. Au revoir et le silence ferment l\'écoute, pas la journée. «Grok, oublie» efface la conversation. Les notes et les alarmes restent.</string>
+    <string name="chat_cleared">J\'ai effacé la conversation. Ce qui est noté reste.</string>
+    <string name="notes_empty">Je n\'ai rien de noté.</string>
+    <string name="notes_header">J\'ai noté</string>
+    <string name="alarms_header">Alarmes</string>
+    <string name="alarm_line">À %1$s, %2$s</string>
+    <string name="note_saved">C\'est noté.</string>
+    <string name="note_exists">C\'est déjà noté.</string>
+    <string name="notes_full">Il n\'y a plus de place pour une note. Efface-en une d\'abord.</string>
+    <string name="notes_cleared">J\'ai effacé les notes.</string>
+    <string name="note_forgotten">J\'ai effacé cette note.</string>
+    <string name="note_missing">Je n\'avais pas noté ça.</string>
+    <string name="alarm_set">Je te préviens à %1$s.</string>
+    <string name="alarm_set_loose">Je te préviens vers %1$s. Si c\'est en retard, autorise les alarmes de cette application dans les réglages du téléphone.</string>
+    <string name="alarm_need_time">Dis-moi l\'heure. Par exemple : rappelle-moi à huit heures.</string>
+    <string name="alarm_bare">Rappel.</string>
+    <string name="alarms_cleared">J\'ai annulé les alarmes.</string>
+    <string name="alarms_full">Il y a trop d\'alarmes. Annule-en une d\'abord.</string>
+    <string name="channel_reminder">Rappels</string>
+    <string name="alarm_confirm">À %1$s, %2$s. Si c\'est bien ça, dis grok, oui.</string>
+    <string name="note_confirm">Je note : %1$s. Si c\'est bien ça, dis grok, oui.</string>
+    <string name="kept_no">Je ne la garde pas.</string>
 </resources>

@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "dev.castellon.grok"
+    namespace = "ch.castellon.oigo"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.castellon.grok"
+        applicationId = "ch.castellon.oigo"
         minSdk = 28
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 36
+        versionName = "1.0.35"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }

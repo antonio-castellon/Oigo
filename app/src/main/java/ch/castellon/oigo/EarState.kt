@@ -1,4 +1,4 @@
-package dev.castellon.grok
+package ch.castellon.oigo
 
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -6,4 +6,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object EarState {
     val listening = MutableStateFlow(false)
     val status = MutableStateFlow("")
+    val inConversation = MutableStateFlow(false)
+    val reply = MutableStateFlow("")
 }

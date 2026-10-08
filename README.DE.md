@@ -9,19 +9,31 @@
 
 ![Ein älterer Herr, zufrieden auf dem Sofa, im Gespräch mit dem Telefon auf dem Tischchen](docs/img/banner.jpg)
 
-# Grok Stimme
+# Oigo
+
+Ich habe die App auf Spanisch ausprobiert. Dieses Deutsch habe ich nicht mit jemandem geprüft, der es als Muttersprache spricht, weder in der Stimme noch auf dieser Seite. Wenn Deutsch Ihre Sprache ist, freue ich mich über Rückmeldungen, Verbesserungen und Fehler.
 
 Ein Telefon bleibt ein kleiner Bildschirm, auch mit sehr großer Schrift. Für einen Menschen, der schlecht sieht, genügt es, den Mikrofonknopf zu suchen, ihn mit dem Finger zu treffen und sich nicht in den Menüs zu verlieren, und das Gerät ist im Alltag fast unbrauchbar. Grok hört zu, wenn man diesen Knopf erreicht. Das Erreichen ist das Schwere.
 
-Grok Stimme führt das weiter, was [Grok Assistant](https://github.com/antonio-castellon/Grok_Assistant) am Computer ist und [Grok Pi Assistance](https://github.com/antonio-castellon/Grok_Pi_Assistance) auf dem Raspberry Pi. In meinem Fall ist die Person mein Vater. Ich wollte, dass er Grok als Gesprächspartner haben kann, ohne lesen zu müssen.
+Oigo führt das weiter, was [Grok Assistant](https://github.com/antonio-castellon/Grok_Assistant) am Computer ist und [Grok Pi Assistance](https://github.com/antonio-castellon/Grok_Pi_Assistance) auf dem Raspberry Pi. In meinem Fall ist die Person mein Vater. Ich wollte, dass er Grok als Gesprächspartner haben kann, ohne lesen zu müssen.
 
 Der Bildschirm ist absichtlich fast leer. Ein großer Knopf in der Mitte öffnet das Mikrofon wieder. Fragen, weiterreden und aufhören geht mit der Stimme, so natürlich, wie ich es innerhalb dessen lassen konnte, was Android erlaubt. Die Einstellungen liegen in einem kleinen Symbol oben links, etwas unter der Leiste, damit man es nicht aus Versehen trifft, wenn man die Benachrichtigungen herunterzieht.
 
-Das Mikrofon soll so lange offen bleiben, wie das System es zulässt. Was im Haus zu hören ist, verlässt das Telefon nicht. Nur ein Satz, der an Grok gerichtet ist, geht in die Cloud. Man beginnt mit „hola grok“ — oder mit „hey grok“, wenn einem das lieber ist — und schließt, wann man will, mit einem „gracias“ oder einem kurzen Abschied. Eine Weile Stille schließt das Gespräch ebenfalls.
+Das Mikrofon soll so lange offen bleiben, wie das System es zulässt. Was im Haus zu hören ist, verlässt das Telefon nicht. Nur ein Satz, der an Grok gerichtet ist, geht in die Cloud. Man öffnet mit „hola grok“ — oder mit „hey grok“, wenn einem das lieber ist.
+
+Ist das Gespräch offen, beginnt jeder Satz an das Telefon mit dem Wort grok. „Grok, wie wird das Wetter.“ „Grok, erzähl mir eine Geschichte.“ Dahinter steht, was man möchte. Man schließt mit „grok, gracias“, oder mit einem kurzen Abschied, der genauso anfängt. Eine Weile Stille schließt das Gespräch ebenfalls.
+
+Grok ist die Art, das Telefon, den Agenten, anzusprechen. Es gibt keinen Stimmabdruck, der unterscheidet, wer spricht. Das Mikrofon hört den Raum weiter: den Fernseher, eine andere Person und die eigene Stimme des Assistenten, während er antwortet. Nur was mit grok beginnt, gilt als an ihn gerichtet, und nur das darf das Telefon verlassen. Der Rest bleibt auf dem Gerät und unterbricht nicht die Stille, mit der das Gespräch endet.
+
+Das Gespräch wird bei xAI nicht gespeichert. Jede Frage geht für sich. Das Telefon schickt die gesuchten Seiten nicht wieder mit. Vom Gesagten behält es eine kurze Zusammenfassung des Tages und die letzten Sätze, und das deckt etwa zwölf Stunden ab, den Tag über. Man ändert es in den Einstellungen unter „Stunden, die das Gespräch behält“, stundenweise, bis vierundzwanzig. „Grok, gracias“ und die Stille beenden das Zuhören, nicht diesen Tag. „Grok, vergiss“ löscht das Gespräch.
+
+Notizen und Wecker sind eine andere Schachtel, auf dem Telefon, und sie gehen mit dem Gespräch nicht weg. „Grok, merke dir…“ wiederholt es und schreibt es auf, wenn du „grok, ja“ sagst. „Grok, weck mich um acht“ schlägt einen Wecker vor: es sagt die Uhrzeit und den Hinweis, und speichert ihn erst nach „grok, ja“. „Grok, woran erinnerst du dich“ sagt sie auf. „Grok, vergiss die Notizen“ und „grok, vergiss die Wecker“ nehmen sie weg.
+
+Wenn das Gespräch aufgeht, stellt die App den Lautsprecher auf die Lautstärke der Stimme, die in den Einstellungen gespeichert ist. Voreingestellt sind 80 %. Niemand muss jedes Mal an der Leiste des Telefons von Hand lauter drehen. Man ändert sie in den Einstellungen, in Zehnerschritten, unter „Lautstärke der Stimme“.
 
 Beim ersten Öffnen wird die Stimme nicht aufgenommen und es gibt keinen Stimmabdruck. Der Satz ist schon geschrieben, in Phonemen, es ist keine Aufnahme der Person. Trotzdem muss man ihn an einem echten Mikrofon prüfen: manche schneiden den Wortanfang ab, und dann wird der Satz nie gehört.
 
-Andere Anwendungen hören zu, lesen Nachrichten oder telefonieren. Diese hier will ihren Platz nicht einnehmen. Sie ist dafür da, dass ein älterer Mensch nur einen Knopf treffen muss und das, was er fragen oder erzählen will, einfach sagen kann. Später, wenn es nötig wird, lassen sich in den Einstellungen das Vorlesen von WhatsApp und ein Anruf an jemanden aus dem Adressbuch einschalten. Eine neue Nachricht wird nie von selbst vorgelesen. Die Stimme fragt, und der Text kommt erst nach einem Ja. Man kann auch die letzten Nachrichten einer Person verlangen, mit dem Namen dieses Gesprächs. Telegram habe ich bisher nicht hingekriegt.
+Andere Anwendungen hören zu, lesen Nachrichten oder telefonieren. Diese hier will ihren Platz nicht einnehmen. Sie ist dafür da, dass ein älterer Mensch nur einen Knopf treffen muss und das, was er fragen oder erzählen will, einfach sagen kann. Später, wenn es nötig wird, lassen sich in den Einstellungen das Vorlesen von WhatsApp und ein Anruf an jemanden aus dem Adressbuch einschalten. Eine neue Nachricht wird nie von selbst vorgelesen. Auch bei geschlossenem Gespräch fragt die Stimme, von wem sie ist. Wenn die Frage endet, ertönt ein kurzer Ton. Danach gilt „ja“ oder „grok, ja“, und das öffnet das Gespräch nicht. Bei eingeschaltetem Hören wählt „ruf … an“ oder „grok, ruf … an“, ohne das Gespräch zu öffnen. Später muss es „grok, ja“ sein, und dasselbe offene Ohr, das auf „hola grok“ wartet, hört es. Ist das Gespräch schon offen, bestätigt „grok, ja“ es ebenfalls, und das Gespräch geht weiter. Der Text kommt erst nach diesem Ja. Ein anderer Satz im Gespräch wirft den Hinweis nicht weg. Ist der Hör-Knopf aus, sagt sie es trotzdem, und die Frage wartet, bis das Hören wieder an ist. Man kann auch die letzten Nachrichten einer Person verlangen, mit dem Namen dieses Gesprächs. Das, und der Hinweis auf eine neue Nachricht, kommt aus der Benachrichtigung des Telefons. Der Chat in WhatsApp oder in Telegram wird nicht geöffnet. Fehlt der Hinweis, oder wurde er gelöscht, kann dieses Gespräch nicht gelesen werden. Senden über Telegram habe ich bisher nicht hingekriegt.
 
 Die offizielle Grok-App teilt ihre Anmeldung nicht, auch wenn sie schon auf dem Telefon liegt. Es gibt keinen Weg, das Konto zu verbinden, ohne etwas zu schreiben. Den API-Schlüssel fügt man einmal ein, von [console.x.ai](https://console.x.ai), und er bleibt auf dem Telefon. Wenn das Guthaben alle ist, sagt die Stimme, dass sie mehr Treibstoff braucht.
 
@@ -33,18 +45,47 @@ Die App spricht Spanisch, Englisch, Französisch, Deutsch und Italienisch.
   <img src="docs/img/home.png" width="280" alt="Der Knopf Hören, in der Mitte">
 </p>
 
+## Jeder Satz beginnt mit grok
+
+Das Gespräch öffnet sich mit „hola grok“. Danach beginnt alles, was man dem Telefon sagt, mit dem Wort grok. Sonst hört das Telefon es und antwortet nicht: es kann der Fernseher sein, eine andere Person oder die eigene Stimme. Man schließt mit „grok, gracias“.
+
+- **Person.** Hola grok.
+- **Grok.** Hallo.
+- **Person.** Grok, wie ist das Wetter in Barcelona.
+- **Grok.** Heute ist es bewölkt.
+- **Person.** Grok, erzähl mir eine kurze Geschichte.
+- **Grok.** Es war einmal ein Leuchtturm, der ausging, wenn die Sonne aufging.
+- **Person.** Grok, weck mich um acht wegen der Tablette.
+- **Grok.** Um 8:00, die Tablette. Wenn das stimmt, sag grok, ja.
+- **Person.** Grok, ja.
+- **Grok.** Ich erinnere dich um 8:00.
+- **Person.** Grok, gracias.
+- **Grok.** Bis später.
+
+## Was man fragen kann
+
+Wetter und Nachrichten. „Grok, wie ist heute das Wetter in Barcelona.“ „Grok, was gibt es Neues.“ Das wird im Internet gesucht.
+
+Eine historische Angabe. „Grok, wer war Napoleon.“ „Grok, in welchem Jahr fiel die Berliner Mauer.“ Das wird auch gesucht. Ein Datum oder eine Tatsache wird nicht erfunden.
+
+Eine Geschichte oder eine Erklärung. „Grok, erzähl mir eine Geschichte.“ „Grok, erklär mir, was ein Regenbogen ist.“ Das wird nicht gesucht. Er erzählt es.
+
+Einen Wecker oder einen Hinweis. „Grok, weck mich um acht, um den Arzt anzurufen.“ „Grok, in zehn Minuten, die Tablette.“ „Grok, merke dir, dass die Schlüssel in der Schublade sind.“ Zuerst wiederholt es, was es verstanden hat. Es speichert es nur, wenn du „grok, ja“ antwortest. „Grok, nein“ lässt es ungespeichert.
+
+Jemanden aus dem Adressbuch anrufen. „Grok, ruf María an.“ Anrufe müssen in den Einstellungen an sein. Das Telefon fragt nach Kontakten und der Erlaubnis zu telefonieren. Ohne das wählt es nicht.
+
 ## Was das Telefon braucht
 
 Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht ein Mikrofon, und beim ersten Mal Netz: ein kleines Modell für den Satz wird geladen, und jedes Gespräch mit Grok geht ins Internet. Die App ist etwa 45 MB, das Modell ein wenig mehr. Die offizielle Grok-App ist nicht nötig. Ein Schlüssel von [console.x.ai](https://console.x.ai) schon.
 
 ## So wird sie eingerichtet
 
-1. Lade das APK der [Version 1.0.0](https://github.com/antonio-castellon/Grok_Android/releases/tag/v1.0.0).
+1. Lade das APK der [Version 1.0.35](https://github.com/antonio-castellon/Grok_Android/releases/tag/v1.0.35).
 2. Erlaube auf dem Telefon die Installation aus dieser Quelle und öffne die Datei.
-3. Öffne Grok Stimme und tippe das kleine Symbol oben links.
-4. Füge den Schlüssel ein. Sprache oder Satz kannst du ändern. Voreingestellt ist „hola grok“.
+3. Öffne Oigo und tippe das kleine Symbol oben links.
+4. Füge den Schlüssel ein. Sprache, Satz oder Lautstärke der Stimme kannst du ändern. Voreingestellt sind „hola grok“ und 80 % Lautstärke.
 5. Geh zurück und drücke **Hören**. Erlaube das Mikrofon und, falls gefragt, die Benachrichtigungen.
-6. Sag „hola grok“ und sprich. Ein „gracias“ schließt das Gespräch.
+6. Sag „hola grok“. Im Gespräch beginnt jeder Satz mit grok. „Grok, gracias“ schließt es.
 7. Die Rechte unten sind kein Zusatz. Ohne sie wird der Knopf gedrückt und das Telefon schließt das Zuhören, sobald der Bildschirm aus geht.
 
 ## Rechte und Einschränkungen
@@ -52,8 +93,8 @@ Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht
 Damit sie hört und weiterhört:
 
 - **Mikrofon.** Wird beim Tippen auf Hören verlangt. Wird es verweigert, gibt es keinen Satz und kein Gespräch.
-- **Benachrichtigungen.** Nötig für den Hinweis „hört zu“ und für die gesprochene Warnung, wenn das Mikrofon stoppt. Auf Xiaomi, Redmi und POCO die Benachrichtigungen von Grok Stimme anlassen, nicht stumm.
-- **Akku ohne Einschränkung.** Auf der Seite der App muss der Akku-Sparmodus auf ohne Einschränkungen stehen. Die Einstellungen von Grok Stimme öffnen diesen Schirm auch. Das verlängert das Zuhören. Es weckt keinen Prozess, den das System schon beendet hat.
+- **Benachrichtigungen.** Nötig für den Hinweis „hört zu“ und für die gesprochene Warnung, wenn das Mikrofon stoppt. Auf Xiaomi, Redmi und POCO die Benachrichtigungen von Oigo anlassen, nicht stumm.
+- **Akku ohne Einschränkung.** Auf der Seite der App muss der Akku-Sparmodus auf ohne Einschränkungen stehen. Die Einstellungen von Oigo öffnen diesen Schirm auch. Das verlängert das Zuhören. Es weckt keinen Prozess, den das System schon beendet hat.
 - **Autostart**, auf Xiaomi, Redmi und POCO. Ist er aus, schließt HyperOS das Zuhören, sobald der Bildschirm aus geht. Das steht auf der Seite der App oder unter Sicherheit.
 - **Die App anheften** in den letzten Apps, das Schloss, damit ein Wischen sie nicht entfernt.
 - **Wecker und Erinnerungen**, falls das Telefon danach fragt. Sie wiederholen die Warnung, dass das Mikrofon nicht mehr hört. Ohne dieses Recht kann die Warnung spät kommen.
@@ -66,8 +107,8 @@ Um die Datei von Hand zu installieren, und besonders auf einem POCO oder Xiaomi:
 Nur wenn du die Extras einschaltest. Ausgeschaltet verlangen sie nichts:
 
 - **Anrufe:** Kontakte und Telefon. Ohne beide wird nicht gewählt.
-- **WhatsApp:** Kontakte, um einen Entwurf zu öffnen, und Benachrichtigungszugriff, um einen neuen Hinweis zu sehen. Der Text wird erst nach einem Ja gelesen. Nicht die alte Historie, nur das, was bei eingeschalteter Option ankommt.
-- Telegram ist nicht da. Dafür ist kein Recht nötig.
+- **WhatsApp:** Kontakte, um einen Entwurf zu öffnen, und Benachrichtigungszugriff. Gelesen wird die Benachrichtigung, nicht der Chat in WhatsApp. Fehlt der Hinweis oder wurde er gelöscht, kann dieses Gespräch nicht gelesen werden. Der Text wird erst nach „grok, ja“ gesagt.
+- **Telegram:** dasselbe. Nur die Benachrichtigung, nicht der Chat der Anwendung. Ohne Hinweis gibt es nichts zu lesen. Eine Nachricht über Telegram zu senden ist bisher nicht da.
 
 Nichts davon benutzt die Anmeldung der offiziellen Grok-App.
 

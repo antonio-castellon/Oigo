@@ -1,6 +1,6 @@
 # Cómo colaborar
 
-Grok voz es pequeña a propósito. Un botón, una frase, una conversación. Una mejora que convierta la pantalla en un panel de opciones no encaja, aunque esté bien hecha.
+Oigo es pequeña a propósito. Un botón, una frase, una conversación. Una mejora que convierta la pantalla en un panel de opciones no encaja, aunque esté bien hecha.
 
 Sirve un fallo que hayas visto en un teléfono de verdad, una frase que el detector no oye, una traducción que suena a máquina, o una idea que deje el uso igual de simple. WhatsApp, las llamadas y, más adelante, Telegram caben si siguen siendo opcionales y piden el permiso solo al encenderse.
 

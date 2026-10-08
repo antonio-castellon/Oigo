@@ -1,4 +1,4 @@
-package dev.castellon.grok
+package ch.castellon.oigo
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import java.util.Locale
+import java.util.UUID
 
 /** Local choices. The API key stays in the keystore when the device allows it. */
 class Store(context: Context) {
@@ -38,6 +39,20 @@ class Store(context: Context) {
         get() = plain.getFloat(QUIET, 1f).coerceIn(0.2f, 30f)
         set(value) = plain.edit().putFloat(QUIET, value.coerceIn(0.2f, 30f)).apply()
 
+    /**
+     * Hours the compacted daytime chat stays on the phone.
+     * A new key, so an old saved minute count is not read as hours.
+     * Notes and alarms are separate.
+     */
+    var contextHours: Int
+        get() = plain.getInt(CONTEXT_HOURS, 12).coerceIn(1, 24)
+        set(value) = plain.edit().putInt(CONTEXT_HOURS, value.coerceIn(1, 24)).apply()
+
+    /** Percent of the media volume used when the app speaks. */
+    var voiceVolume: Int
+        get() = plain.getInt(VOICE, 80).coerceIn(0, 100)
+        set(value) = plain.edit().putInt(VOICE, value.coerceIn(0, 100)).apply()
+
     var calls: Boolean
         get() = plain.getBoolean(CALLS, false)
         set(value) = plain.edit().putBoolean(CALLS, value).apply()
@@ -51,8 +66,17 @@ class Store(context: Context) {
         set(value) = plain.edit().putBoolean(TELEGRAM, value).apply()
 
     var model: String
-        get() = plain.getString(MODEL, "grok-4.7") ?: "grok-4.7"
-        set(value) = plain.edit().putString(MODEL, value.ifBlank { "grok-4.7" }).apply()
+        get() = plain.getString(MODEL, "grok-4.3") ?: "grok-4.3"
+        set(value) = plain.edit().putString(MODEL, value.ifBlank { "grok-4.3" }).apply()
+
+    /** Stable id for a trace. It is not a phone number and not an account. */
+    fun installId(): String {
+        val saved = plain.getString(INSTALL, "").orEmpty()
+        if (saved.isNotBlank()) return saved
+        val created = UUID.randomUUID().toString()
+        plain.edit().putString(INSTALL, created).apply()
+        return created
+    }
 
     var apiKey: String
         get() = secret.getString(KEY, "") ?: ""
@@ -81,7 +105,8 @@ class Store(context: Context) {
         return base.createConfigurationContext(config)
     }
 
-    fun keywordLine(): String = if (wake == WAKE_HEY) HEY_LINE else HOLA_LINE
+    /** Several pronunciations, one tag. Spanish “hola” has a silent h. */
+    fun keywordsText(): String = (if (wake == WAKE_HEY) HEY_LINES else HOLA_LINES) + ANSWER_LINES
 
     fun wakeWords(): List<String> = if (wake == WAKE_HEY) {
         listOf("hey grok", "ok grok", "okay grok")
@@ -93,10 +118,35 @@ class Store(context: Context) {
         const val WAKE_HOLA = "hola"
         const val WAKE_HEY = "hey"
 
-        // Phones of the zh-en keyword model. "Hola grok" is written by hand in that set.
-        // It is not a recording of the person.
-        private const val HOLA_LINE = "HH OW1 L AA1 G R OW1 K @HOLA_GROK"
-        private const val HEY_LINE = "HH EY1 G R OW1 K @HEY_GROK"
+        // Phones and pinyin of the zh-en model. Not a recording of the person.
+        // :score raises the path. #threshold is how sure the model must be.
+        // A line that starts with HH misses Spanish “hola”, because that h is silent.
+        private const val HOLA_LINES =
+            "OW1 L AA1 G R OW1 K :2.5 #0.10 @HOLA_GROK\n" +
+                "OW1 L AA1 G R AA1 K :2.5 #0.10 @HOLA_GROK\n" +
+                "OW1 L AA1 G R AO1 K :2.0 #0.12 @HOLA_GROK\n" +
+                "OW1 L AH0 G R OW1 K :2.0 #0.12 @HOLA_GROK\n" +
+                "HH OW1 L AA1 G R OW1 K :2.0 #0.15 @HOLA_GROK\n" +
+                "HH OW1 L AA1 G R AA1 K :2.0 #0.15 @HOLA_GROK\n" +
+                "o l a g r o k :2.0 #0.18 @HOLA_GROK\n" +
+                "ou l a g r ou k :2.0 #0.18 @HOLA_GROK\n"
+        private const val HEY_LINES =
+            "HH EY1 G R OW1 K :2.0 #0.12 @HEY_GROK\n" +
+                "HH EY1 G R AA1 K :2.0 #0.12 @HEY_GROK\n" +
+                "EY1 G R OW1 K :2.0 #0.12 @HEY_GROK\n"
+        private const val ANSWER_LINES =
+            "G R OW1 K S IY1 :2.2 #0.14 @GROK_YES\n" +
+                "G R AA1 K S IY1 :2.2 #0.14 @GROK_YES\n" +
+                "G R OW1 K S IH1 :2.0 #0.16 @GROK_YES\n" +
+                "g r o k s i :2.0 #0.16 @GROK_YES\n" +
+                "G R OW1 K Y EH1 S :2.0 #0.16 @GROK_YES\n" +
+                "G R OW1 K W IY1 :2.0 #0.16 @GROK_YES\n" +
+                "G R OW1 K Y AA1 :2.0 #0.16 @GROK_YES\n" +
+                "G R OW1 K N OW1 :2.2 #0.14 @GROK_NO\n" +
+                "G R AA1 K N OW1 :2.2 #0.14 @GROK_NO\n" +
+                "g r o k n o :2.0 #0.16 @GROK_NO\n" +
+                "G R OW1 K N AO1 N :2.0 #0.16 @GROK_NO\n" +
+                "G R OW1 K N AY1 N :2.0 #0.16 @GROK_NO\n"
 
         private const val ARMED = "armed"
         private const val WAKE = "wake"
@@ -104,12 +154,15 @@ class Store(context: Context) {
         private const val REPEATS = "repeats"
         private const val MINUTES = "minutes"
         private const val QUIET = "quiet"
+        private const val CONTEXT_HOURS = "context_hours"
+        private const val VOICE = "voice_volume"
         private const val CALLS = "calls"
         private const val WHATSAPP = "whatsapp"
         private const val TELEGRAM = "telegram"
         private const val MODEL = "model"
         private const val KEY = "api_key"
         private const val ALERT_INDEX = "alert_index"
+        private const val INSTALL = "install_id"
 
         private fun openSecret(context: Context): SharedPreferences? = try {
             val alias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)

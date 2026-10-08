@@ -73,17 +73,27 @@ data class KeywordSpotterResult(
 )
 
 class OnlineStream(var ptr: Long = 0) {
+    private val gate = Any()
+
     init {
         require(ptr != 0L) { "Failed to create native OnlineStream" }
     }
 
-    fun acceptWaveform(samples: FloatArray, sampleRate: Int) = acceptWaveform(ptr, samples, sampleRate)
+    /** A released stream has a null native pointer. Calling into it crashes the process. */
+    fun acceptWaveform(samples: FloatArray, sampleRate: Int) {
+        if (samples.isEmpty()) return
+        val native = synchronized(gate) { ptr }
+        if (native == 0L) return
+        acceptWaveform(native, samples, sampleRate)
+    }
 
     fun release() {
-        if (ptr != 0L) {
-            delete(ptr)
+        val native = synchronized(gate) {
+            val current = ptr
             ptr = 0
+            current
         }
+        if (native != 0L) delete(native)
     }
 
     private external fun acceptWaveform(ptr: Long, samples: FloatArray, sampleRate: Int)
@@ -116,10 +126,29 @@ class KeywordSpotter(
 
     fun createStream(keywords: String = ""): OnlineStream = OnlineStream(createStream(ptr, keywords))
 
-    fun decode(stream: OnlineStream) = decode(ptr, stream.ptr)
-    fun reset(stream: OnlineStream) = reset(ptr, stream.ptr)
-    fun isReady(stream: OnlineStream) = isReady(ptr, stream.ptr)
-    fun getResult(stream: OnlineStream) = getResult(ptr, stream.ptr)
+    fun decode(stream: OnlineStream) {
+        val native = stream.ptr
+        if (ptr == 0L || native == 0L) return
+        decode(ptr, native)
+    }
+
+    fun reset(stream: OnlineStream) {
+        val native = stream.ptr
+        if (ptr == 0L || native == 0L) return
+        reset(ptr, native)
+    }
+
+    fun isReady(stream: OnlineStream): Boolean {
+        val native = stream.ptr
+        if (ptr == 0L || native == 0L) return false
+        return isReady(ptr, native)
+    }
+
+    fun getResult(stream: OnlineStream): KeywordSpotterResult {
+        val native = stream.ptr
+        if (ptr == 0L || native == 0L) return KeywordSpotterResult("", emptyArray(), FloatArray(0))
+        return getResult(ptr, native)
+    }
 
     private external fun delete(ptr: Long)
     private external fun newFromAsset(assetManager: AssetManager, config: KeywordSpotterConfig): Long

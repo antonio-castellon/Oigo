@@ -34,6 +34,16 @@
             android:exported="false"
             android:label="@string/settings_title" />
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <service
             android:name=".ListenService"
             android:exported="false"
@@ -57,8 +67,30 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".MessageNotice"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Speaks that a message arrived while the microphone is off. This service does not open the microphone." />
+        </service>
+
+        <service
+            android:name=".ReminderService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Speaks a reminder the person asked the app to keep. This service does not open the microphone." />
+        </service>
+
         <receiver
             android:name=".AlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ReminderReceiver"
             android:exported="false" />
 
         <receiver

@@ -1,4 +1,4 @@
-package dev.castellon.grok
+package ch.castellon.oigo
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -9,7 +9,7 @@ import android.os.Build
 import android.os.SystemClock
 
 object Alerts {
-    const val ACTION = "dev.castellon.grok.ALERT"
+    const val ACTION = "ch.castellon.oigo.ALERT"
     private const val REQUEST = 17
 
     fun cancel(context: Context) {
@@ -53,6 +53,7 @@ class AlertReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        Memory.reschedule(context)
         val store = Store(context)
         if (!store.armed) return
         store.armed = false

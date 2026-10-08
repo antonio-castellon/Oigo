@@ -1,4 +1,4 @@
-package dev.castellon.grok
+package ch.castellon.oigo
 
 import android.Manifest
 import android.content.Intent
@@ -46,6 +46,7 @@ class SettingsActivity : LocalizedActivity() {
     private var callsOn by mutableStateOf(false)
     private var whatsappOn by mutableStateOf(false)
     private var telegramOn by mutableStateOf(false)
+    private var traceNote by mutableStateOf("")
 
     private val callPerm = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         val ok = granted[Manifest.permission.CALL_PHONE] == true &&
@@ -60,9 +61,15 @@ class SettingsActivity : LocalizedActivity() {
         if (ok && !listenerOn()) openListener()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::store.isInitialized && (store.telegram || store.whatsapp)) MessageListener.rescan(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
+        Trace.attach(this)
         callsOn = store.calls
         whatsappOn = store.whatsapp
         telegramOn = store.telegram
@@ -79,6 +86,8 @@ class SettingsActivity : LocalizedActivity() {
         var repeats by remember { mutableIntStateOf(store.alertRepeats) }
         var minutes by remember { mutableIntStateOf(store.alertMinutes) }
         var quiet by remember { mutableFloatStateOf(store.quietMinutes) }
+        var contextHours by remember { mutableIntStateOf(store.contextHours) }
+        var volume by remember { mutableIntStateOf(store.voiceVolume) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -143,6 +152,15 @@ class SettingsActivity : LocalizedActivity() {
                 label = { Text(stringResource(R.string.model)) },
                 singleLine = true,
             )
+            Stepper(stringResource(R.string.voice_volume), "$volume%", {
+                store.voiceVolume = volume - 10
+                volume = store.voiceVolume
+                VoiceLevel.apply(this@SettingsActivity, volume)
+            }, {
+                store.voiceVolume = volume + 10
+                volume = store.voiceVolume
+                VoiceLevel.apply(this@SettingsActivity, volume)
+            })
             Text(stringResource(R.string.alerts_title), color = ink, fontSize = 18.sp)
             Stepper(stringResource(R.string.alert_repeats), repeats.toString(), {
                 store.alertRepeats = repeats - 1
@@ -170,6 +188,14 @@ class SettingsActivity : LocalizedActivity() {
                     quiet = store.quietMinutes
                 },
             )
+            Stepper(stringResource(R.string.context_hours), contextHours.toString(), {
+                store.contextHours = contextHours - 1
+                contextHours = store.contextHours
+            }, {
+                store.contextHours = contextHours + 1
+                contextHours = store.contextHours
+            })
+            Text(stringResource(R.string.context_help), color = ink, fontSize = 15.sp)
             Text(stringResource(R.string.extras_title), color = ink, fontSize = 18.sp)
             Text(stringResource(R.string.extras_help), color = ink, fontSize = 15.sp)
             Toggle(stringResource(R.string.calls), callsOn) { on ->
@@ -191,7 +217,8 @@ class SettingsActivity : LocalizedActivity() {
             Toggle(stringResource(R.string.telegram), telegramOn) { on ->
                 store.telegram = on
                 telegramOn = on
-                if (on && !listenerOn()) openListener()
+                if (!on) return@Toggle
+                if (!listenerOn()) openListener() else MessageListener.rescan(this@SettingsActivity)
             }
             Text(stringResource(R.string.notification_access), color = ink, fontSize = 15.sp)
             Button(onClick = ::openListener, modifier = Modifier.fillMaxWidth()) {
@@ -204,7 +231,44 @@ class SettingsActivity : LocalizedActivity() {
             Button(onClick = ::stopListening, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.stop))
             }
+            Text(stringResource(R.string.trace_help), color = ink, fontSize = 15.sp)
+            Button(onClick = ::sendTraces, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.trace_button))
+            }
+            Text(
+                text = stringResource(R.string.trace_id, remember { store.installId() }),
+                color = ink,
+                fontSize = 15.sp,
+            )
+            if (traceNote.isNotBlank()) {
+                Text(traceNote, color = ink, fontSize = 15.sp)
+            }
+            Text(
+                text = stringResource(R.string.app_version, appVersion()),
+                color = ink,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Button(onClick = { openLink(Trace.ISSUES) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.issues_link))
+            }
+            Button(onClick = { openLink(Trace.SITE) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.company_link))
+            }
+            Text(
+                text = stringResource(R.string.author_name),
+                color = ink,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
         }
+    }
+
+    private fun appVersion(): String = try {
+        @Suppress("DEPRECATION")
+        packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+    } catch (_: Exception) {
+        ""
     }
 
     @Composable
@@ -254,6 +318,23 @@ class SettingsActivity : LocalizedActivity() {
         startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
+    private fun sendTraces() {
+        traceNote = ""
+        try {
+            Trace.send(this)
+        } catch (_: Exception) {
+            traceNote = getString(R.string.trace_failed)
+        }
+    }
+
+    private fun openLink(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            traceNote = getString(R.string.trace_failed)
+        }
+    }
+
     private fun openBattery() {
         val intent = Intent(
             Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
@@ -267,12 +348,7 @@ class SettingsActivity : LocalizedActivity() {
     }
 
     private fun stopListening() {
-        store.armed = false
-        Alerts.cancel(this)
-        if (ListenService.live != null) {
-            startService(Intent(this, ListenService::class.java).setAction(ListenService.ACTION_STOP))
-        }
-        EarState.listening.value = false
+        ListenService.stop(this)
         finish()
     }
 }
