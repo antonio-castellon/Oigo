@@ -1,83 +1,29 @@
-# Grok voz (Android)
+[English](README.EN.md) · [Français](README.FR.md) · [Deutsch](README.DE.md)
 
-Aplicación de voz para el teléfono. Un botón grande en el centro vuelve a abrir el micrófono. La frase clave se detecta por fonemas en el propio teléfono. Solo después de esa frase el texto sale hacia la API de Grok. La conversación sigue abierta hasta un silencio largo o un adiós corto.
+![El botón Escuchar, en el centro de una pantalla casi vacía](docs/img/home.png)
 
-La pantalla de ajustes está en un icono pequeño, arriba a la izquierda, separado de la barra de estado para que un desliz hacia abajo no lo pulse.
+# Grok voz
 
-## Primera vez: no hay que grabar nada
+Un teléfono, aunque se le ponga la letra muy grande, sigue siendo una pantalla pequeña. Para una persona con la vista justa, encontrar el botón del micrófono, acertar con el dedo y no perderse por los menús hace que el aparato acabe siendo casi inservible en el día a día. Grok ya escucha si uno llega a pulsar ese botón. El problema es llegar.
 
-No hace falta grabar la voz ni una huella. La frase ya está escrita como fonemas del modelo. No es una grabación de la persona.
+Grok voz sigue el camino de [Grok Assistant](https://github.com/antonio-castellon/Grok_Assistant), en el ordenador, y de [Grok Pi Assistance](https://github.com/antonio-castellon/Grok_Pi_Assistance), en la Raspberry. En mi caso la persona es mi padre. Quería que pudiera tener a Grok como compañero de conversación, y que para eso no tuviera que leer.
 
-Frase por defecto: **hola grok**. También se puede elegir **hey grok**.
+La pantalla, a propósito, casi no tiene nada. Un botón grande en el centro vuelve a abrir el micrófono. Preguntar, seguir hablando y terminar se hace con la voz, de la forma más natural que he podido dejar dentro de lo que Android permite. Los ajustes están en un icono pequeño, arriba a la izquierda y un poco separado de la barra, para no pulsarlo sin querer al bajar las notificaciones.
 
-Línea que se usa, en el formato del modelo zh-en de sherpa-onnx:
+El micrófono procura quedarse abierto todo el tiempo que el sistema lo consiente. Lo que se oye en casa no sale del teléfono. Solo una frase dirigida a Grok viaja a la nube. Se empieza con «hola grok» —o con «hey grok», si se prefiere esa— y se cierra cuando uno quiere, con un «gracias» o con un adiós corto. Si pasa un rato en silencio, también se cierra sola.
 
-```
-HH OW1 L AA1 G R OW1 K @HOLA_GROK
-HH EY1 G R OW1 K @HEY_GROK
-```
+La primera vez no hay que grabar la voz ni dejar una huella. La frase ya está escrita, en fonemas, no es una grabación de la persona. Aun así hay que probarla con el micrófono de verdad: algunos recortan el principio de la palabra, y entonces la frase no llega a oírse.
 
-Solo se escribe la línea de la frase elegida. Es una candidata. Hay que probarla con el micrófono real del teléfono. Un filtro de ruido puede cortar los primeros 50–150 ms y la frase no salta.
+Hay otras aplicaciones que escuchan, leen mensajes o llaman. Esta no intenta ocupar su sitio. Está hecha para que una persona mayor solo tenga que acertar un botón, y para que lo que quiera preguntar o contar pueda decirlo hablando. Si más adelante hace falta, en ajustes se puede encender la lectura de WhatsApp y también llamar a alguien de la agenda por la voz. Un mensaje nuevo no se lee solo: pregunta si quieres oírlo, y el texto solo sale si dices que sí. Pedir los últimos mensajes de una persona vale igual, con el nombre de ese chat. Telegram, de momento, no lo he conseguido.
 
-El reconocedor de Android no puede leer el audio que ya capturó el detector. La pregunta dicha en la misma respiración puede perder el principio. Por eso, al oír la frase, el reconocedor arranca enseguida y la aplicación no dice «Dime» antes.
+Aunque el móvil tenga ya la aplicación oficial de Grok, esta no puede usar esa sesión. No hay forma de enlazar la cuenta sin escribir nada. La clave de la API se pega una vez, desde [console.x.ai](https://console.x.ai), y se queda en el teléfono. Si el crédito se acaba, la voz dice que necesita más gasolina.
 
-Mientras la conversación está abierta, las frases siguientes van a Grok sin repetir la frase clave. El micrófono se cierra mientras habla la voz del teléfono.
+Android, a veces, cierra lo que lleva un rato escuchando. Si mata el proceso, el micrófono no vuelve solo: hay que abrir la aplicación y pulsar el botón. Si la aplicación sigue viva pero el micrófono ya no oye, avisa por voz unas pocas veces, con unos minutos de por medio, por si la persona no estaba cerca en el primer aviso. Cuántas veces, y cada cuánto, se cambia en ajustes.
 
-## La cuenta de Grok
+La aplicación habla español, inglés, francés, alemán e italiano.
 
-Si el teléfono ya tiene la aplicación oficial de Grok, esta aplicación no puede usar ese inicio de sesión ni leer sus ficheros. No hay un enlace de cuenta sin escribir nada.
+El APK para probarla está en la [versión 1.0.0](https://github.com/antonio-castellon/Grok_Android/releases/tag/v1.0.0). En el teléfono hay que permitir instalar desde ese origen, abrir el archivo y, la primera vez que se pulsa Escuchar, aceptar el micrófono.
 
-La clave de la API se pega una vez en ajustes. Sale de [console.x.ai](https://console.x.ai). Se guarda cifrada en el teléfono cuando el sistema lo permite. La suscripción de la aplicación oficial no incluye el crédito de la API.
+Para compilarla hacen falta JDK 17 y el Android SDK 35. Con `.\gradlew.bat assembleDebug` el paquete queda en `app/build/outputs/apk/debug/`. La primera compilación descarga las librerías de sherpa-onnx, y la primera escucha descarga el modelo de la frase.
 
-Si la API responde 401, 402 o 429, la voz dice que necesita más gasolina y esa vuelta no sigue.
-
-El modelo por defecto es `grok-4.7`. Se puede cambiar en ajustes.
-
-## Instalar el APK
-
-El APK de depuración queda en:
-
-`app/build/outputs/apk/debug/app-debug.apk`
-
-En el teléfono: Ajustes, instalar aplicaciones desconocidas, abrir el APK. La primera vez que se pulsa **Escuchar**, Android pide el micrófono. También pide las notificaciones, para el aviso de escucha y para el aviso si el micrófono se para.
-
-La primera escucha descarga el modelo de fonemas (unos pocos megabytes) desde GitHub. Hace falta red esa vez.
-
-## Compilar
-
-Hace falta JDK 17 (el `java` por defecto de esta máquina puede ser el 8) y el Android SDK 35. La aplicación se instala con target 34.
-
-```
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot"
-.\gradlew.bat assembleDebug
-```
-
-La primera compilación descarga las librerías nativas de sherpa-onnx 1.13.8 (arm64-v8a y armeabi-v7a). No van en el repositorio. Ver `NOTICE`.
-
-## Micrófono en segundo plano
-
-Mientras escucha hay una notificación fija. El servicio es de tipo micrófono y hay que haberlo arrancado con la aplicación visible.
-
-Si el proceso sigue vivo pero el micrófono ya no escucha, la voz avisa. Por defecto son 3 avisos, separados 5 minutos, por si la persona no está junto al teléfono en el primero. Las dos cifras se cambian en ajustes.
-
-Si Android mata el proceso, el micrófono no vuelve a abrirse solo. `START_STICKY` no es fiable para un servicio de micrófono. Tras reiniciar el teléfono solo aparece una notificación: hay que abrir la aplicación y pulsar el botón. Quitar la optimización de batería alarga la escucha, pero no resucita un proceso muerto.
-
-## Llamadas y mensajes
-
-Apagados al instalar. El permiso se pide solo al activar cada opción.
-
-- Llamar: contactos y teléfono. Una sola coincidencia de nombre, y un solo móvil si hay varios números. La frase puede ser «puedes llamar a Antonio Javier». El nombre no se envía a Grok si la orden ya se entiende en el teléfono.
-- WhatsApp y Telegram: solo los avisos que llegan mientras la opción está activa. No es el historial completo del chat.
-- Un mensaje nuevo no se lee solo. La voz pregunta si quieres oírlo. El texto se dice después de sí, yes, oui, ja o vale.
-- También vale «lee los últimos 5 mensajes de Ana», con los avisos guardados de ese nombre.
-- Enviar un WhatsApp abre un borrador. El envío lo pulsa la persona. Telegram no se puede dirigir por el nombre del chat; leer sus avisos sí.
-
-No hay servicio de accesibilidad ni lectura de otra aplicación por dentro.
-
-## English
-
-One button restarts listening. The wake phrase is a written phoneme line, so the first launch records nothing. Text leaves the phone only after that phrase. The official Grok app cannot share its login: paste an xAI API key once. Calls, WhatsApp, and Telegram stay off until enabled, and a message body is spoken only after a yes. If Android kills the process, the microphone does not reopen by itself.
-
-## License
-
-MIT. The sherpa-onnx keyword classes and native libraries are Apache-2.0. See `NOTICE`.
+MIT. Lo de sherpa-onnx va con su propia licencia Apache-2.0. Está en `NOTICE`.
