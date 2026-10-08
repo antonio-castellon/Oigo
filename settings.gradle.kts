@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Grok_Android"
+rootProject.name = "Oigo"
 include(":app")

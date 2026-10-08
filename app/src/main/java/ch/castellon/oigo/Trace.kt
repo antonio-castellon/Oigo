@@ -21,7 +21,7 @@ import java.util.Locale
  * The report has no key, no message text, no phone numbers, and no names.
  */
 object Trace {
-    const val ISSUES = "https://github.com/antonio-castellon/Grok_Android/issues"
+    const val ISSUES = "https://github.com/antonio-castellon/Oigo/issues"
     const val SITE = "https://castellon.ch/"
     private const val MAIL = "antonio@castellon.ch"
     private const val GMAIL = "com.google.android.gm"

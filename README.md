@@ -1,7 +1,7 @@
 [English](README.EN.md) · [Français](README.FR.md) · [Deutsch](README.DE.md)
 
 <p>
-  <a href="https://github.com/antonio-castellon/Grok_Android/releases/latest"><img src="https://img.shields.io/github/v/release/antonio-castellon/Grok_Android?label=versi%C3%B3n" alt="versión"></a>
+  <a href="https://github.com/antonio-castellon/Oigo/releases/latest"><img src="https://img.shields.io/github/v/release/antonio-castellon/Oigo?label=versi%C3%B3n" alt="versión"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue" alt="licencia MIT"></a>
   <img src="https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white" alt="Android 9 o más">
   <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin">
@@ -78,7 +78,7 @@ Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micr�
 
 ## Cómo dejarla lista
 
-1. Baja el APK de la [versión 1.0.35](https://github.com/antonio-castellon/Grok_Android/releases/tag/v1.0.35).
+1. Baja el APK de la [versión 1.0.35](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.35).
 2. En el teléfono, permite instalar desde ese origen y abre el archivo.
 3. Abre Oigo y pulsa el icono pequeño de arriba a la izquierda.
 4. Pega la clave. Si quieres, cambia el idioma, la frase o el volumen de la voz. Viene en «hola grok», y el volumen al 80 %.
@@ -115,8 +115,8 @@ Nada de esto usa la sesión de la aplicación oficial de Grok.
 Hace falta JDK 17 y el Android SDK 35. El `java` de la máquina puede ser más viejo: Gradle tiene que usar el 17.
 
 ```
-git clone https://github.com/antonio-castellon/Grok_Android.git
-cd Grok_Android
+git clone https://github.com/antonio-castellon/Oigo.git
+cd Oigo
 .\gradlew.bat assembleDebug
 ```
 
