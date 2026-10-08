@@ -45,8 +45,31 @@ Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micr�
 4. Pega la clave. Si quieres, cambia el idioma o la frase. Viene en «hola grok».
 5. Vuelve atrás y pulsa **Escuchar**. Acepta el micrófono y, si sale, las notificaciones.
 6. Di «hola grok» y habla. Un «gracias» cierra la charla.
-7. Si el teléfono acostumbra a cerrar las aplicaciones, desde ajustes se abre la excepción de batería. Alarga la escucha. No despierta un proceso que Android ya haya matado.
-8. WhatsApp y las llamadas se encienden en esa misma pantalla, y solo entonces piden su permiso. Telegram todavía no está.
+7. Los permisos de abajo no son un extra. Sin ellos el botón se pulsa y el teléfono cierra la escucha al apagar la pantalla.
+
+## Permisos y restricciones
+
+Para que oiga y siga oyendo:
+
+- **Micrófono.** Se pide al pulsar Escuchar. Si se niega, no hay frase ni conversación.
+- **Notificaciones.** Hacen falta para el aviso de que está escuchando y para el aviso hablado si el micrófono se para. En Xiaomi, Redmi y POCO deja las notificaciones de Grok voz activas, no en silencio.
+- **Batería sin restricciones.** En la ficha de la aplicación, el ahorro de batería tiene que quedar en sin restricciones. Desde los ajustes de Grok voz también se abre esa pantalla. Eso alarga la escucha. No despierta un proceso que el sistema ya haya matado.
+- **Inicio automático**, en Xiaomi, Redmi y POCO. Si está apagado, HyperOS cierra la escucha en cuanto se apaga la pantalla. Está en la ficha de la aplicación, o en Seguridad.
+- **Fijar la aplicación** en las recientes, el candado, para que un barrido no la quite.
+- **Alarmas y recordatorios**, si el teléfono lo pregunta. Sirven para repetir el aviso de que el micrófono ya no escucha. Sin ese permiso el aviso puede llegar tarde.
+
+Para instalar el archivo a mano, y sobre todo en un POCO o un Xiaomi:
+
+- Permitir **instalar aplicaciones desconocidas** desde donde abras el APK.
+- Si la pasas por USB: **depuración USB**, **depuración USB (ajustes de seguridad)** e **instalar vía USB**. En HyperOS, sin instalar vía USB el teléfono cancela la instalación aunque el ordenador ya esté aceptado. A veces esa opción no se deja encender hasta iniciar la cuenta Mi.
+
+Solo si enciendes las extras. Apagadas, no piden nada:
+
+- **Llamadas:** contactos y teléfono. Sin los dos, no marca.
+- **WhatsApp:** contactos, para abrir un borrador, y acceso a las notificaciones, para ver un aviso nuevo. El texto no se lee hasta que digas que sí. No ve el historial de antes: solo lo que llegue con la opción encendida.
+- Telegram no está. No hace falta darle permiso.
+
+Nada de esto usa la sesión de la aplicación oficial de Grok.
 
 ## Cómo compilarla
 

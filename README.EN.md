@@ -45,8 +45,31 @@ Android 9 or newer, a normal ARM phone (64-bit or 32-bit). It needs a microphone
 4. Paste the key. Change the language or the phrase if you want. It starts as "hola grok".
 5. Go back and press **Listen**. Allow the microphone and, if asked, notifications.
 6. Say "hola grok" and talk. "Gracias" closes the conversation.
-7. If the phone likes to close apps, settings opens the battery exception. It keeps listening longer. It does not wake a process Android has already killed.
-8. WhatsApp and calls are switched on from that same screen, and only then ask for their permission. Telegram is not there yet.
+7. The permissions below are not optional extras. Without them the button is pressed and the phone closes listening as soon as the screen goes off.
+
+## Permissions and restrictions
+
+So it can hear, and keep hearing:
+
+- **Microphone.** Asked when you press Listen. If it is denied, there is no phrase and no conversation.
+- **Notifications.** Needed for the "listening" notice and for the spoken warning if the microphone stops. On Xiaomi, Redmi, and POCO, leave Grok Voice notifications on, not silenced.
+- **Battery, unrestricted.** On the app's page, battery saver must be set to no restrictions. Grok Voice settings opens that screen too. This keeps listening longer. It does not wake a process the system has already killed.
+- **Autostart**, on Xiaomi, Redmi, and POCO. If it is off, HyperOS closes listening as soon as the screen goes off. It is on the app's page, or under Security.
+- **Pin the app** in the recent apps, the lock, so a swipe does not clear it.
+- **Alarms and reminders**, if the phone asks. They repeat the warning that the microphone is no longer listening. Without that permission the warning can arrive late.
+
+To install the file by hand, and especially on a POCO or a Xiaomi:
+
+- Allow **install unknown apps** from wherever you open the APK.
+- If you send it over USB: **USB debugging**, **USB debugging (Security settings)**, and **Install via USB**. On HyperOS, without Install via USB the phone cancels the install even after this computer is allowed. That option sometimes stays locked until a Mi account is signed in.
+
+Only if you turn the extras on. While they are off, they ask for nothing:
+
+- **Calls:** contacts and phone. Without both, it does not dial.
+- **WhatsApp:** contacts, to open a draft, and notification access, to see a new notice. The text is not read until you say yes. It does not see older history, only what arrives while the option is on.
+- Telegram is not there. It needs no permission.
+
+None of this uses the official Grok app's login.
 
 ## How to build it
 
