@@ -1,6 +1,13 @@
 [English](README.EN.md) · [Français](README.FR.md) · [Deutsch](README.DE.md)
 
-![El botón Escuchar, en el centro de una pantalla casi vacía](docs/img/home.png)
+<p>
+  <a href="https://github.com/antonio-castellon/Grok_Android/releases/latest"><img src="https://img.shields.io/github/v/release/antonio-castellon/Grok_Android?label=versi%C3%B3n" alt="versión"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue" alt="licencia MIT"></a>
+  <img src="https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white" alt="Android 9 o más">
+  <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin">
+</p>
+
+![Un señor mayor, a gusto en el sofá, charlando con el móvil de la mesita](docs/img/banner.jpg)
 
 # Grok voz
 
@@ -22,8 +29,43 @@ Android, a veces, cierra lo que lleva un rato escuchando. Si mata el proceso, el
 
 La aplicación habla español, inglés, francés, alemán e italiano.
 
-El APK para probarla está en la [versión 1.0.0](https://github.com/antonio-castellon/Grok_Android/releases/tag/v1.0.0). En el teléfono hay que permitir instalar desde ese origen, abrir el archivo y, la primera vez que se pulsa Escuchar, aceptar el micrófono.
+<p align="center">
+  <img src="docs/img/home.png" width="280" alt="El botón Escuchar, en el centro">
+</p>
 
-Para compilarla hacen falta JDK 17 y el Android SDK 35. Con `.\gradlew.bat assembleDebug` el paquete queda en `app/build/outputs/apk/debug/`. La primera compilación descarga las librerías de sherpa-onnx, y la primera escucha descarga el modelo de la frase.
+## Qué teléfono hace falta
 
-MIT. Lo de sherpa-onnx va con su propia licencia Apache-2.0. Está en `NOTICE`.
+Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micrófono, y red la primera vez: baja un modelo pequeño de la frase, y cada charla con Grok sale a internet. La aplicación ocupa unos 45 MB, y el modelo, unos pocos más. No hace falta tener instalada la aplicación oficial de Grok. Sí hace falta una clave de [console.x.ai](https://console.x.ai).
+
+## Cómo dejarla lista
+
+1. Baja el APK de la [versión 1.0.0](https://github.com/antonio-castellon/Grok_Android/releases/tag/v1.0.0).
+2. En el teléfono, permite instalar desde ese origen y abre el archivo.
+3. Abre Grok voz y pulsa el icono pequeño de arriba a la izquierda.
+4. Pega la clave. Si quieres, cambia el idioma o la frase. Viene en «hola grok».
+5. Vuelve atrás y pulsa **Escuchar**. Acepta el micrófono y, si sale, las notificaciones.
+6. Di «hola grok» y habla. Un «gracias» cierra la charla.
+7. Si el teléfono acostumbra a cerrar las aplicaciones, desde ajustes se abre la excepción de batería. Alarga la escucha. No despierta un proceso que Android ya haya matado.
+8. WhatsApp y las llamadas se encienden en esa misma pantalla, y solo entonces piden su permiso. Telegram todavía no está.
+
+## Cómo compilarla
+
+Hace falta JDK 17 y el Android SDK 35. El `java` de la máquina puede ser más viejo: Gradle tiene que usar el 17.
+
+```
+git clone https://github.com/antonio-castellon/Grok_Android.git
+cd Grok_Android
+.\gradlew.bat assembleDebug
+```
+
+El paquete queda en `app/build/outputs/apk/debug/app-debug.apk`. La primera compilación descarga las librerías nativas de sherpa-onnx. Con el teléfono en depuración USB:
+
+```
+adb install -r app\build\outputs\apk\debug\app-debug.apk
+```
+
+## Colaboraciones
+
+Se aceptan ideas, fallos y cambios. El botón grande y la privacidad de la frase son la pieza que no quiero perder. Antes de un cambio, mira [cómo colaborar](CONTRIBUTING.md). El [trato entre personas](CODE_OF_CONDUCT.md) es corto. Una clave o un fallo de seguridad no se escribe en un issue abierto: va por [SECURITY.md](SECURITY.md).
+
+MIT. Lo de sherpa-onnx va con su propia licencia Apache-2.0, en [NOTICE](NOTICE). El resto está en [LICENSE](LICENSE).
