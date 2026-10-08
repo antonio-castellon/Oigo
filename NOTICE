@@ -1,0 +1,11 @@
+The keyword-spotter classes under app/src/main/java/com/k2fsa/sherpa/onnx
+are a minimal copy of sherpa-onnx 1.13.8 (Apache License 2.0).
+Copyright 2024 Xiaomi Corporation. Field names match the JNI library.
+
+The native libraries libsherpa-onnx-jni.so and libonnxruntime.so are
+downloaded at build time from the sherpa-onnx v1.13.8 Android archive.
+They are not committed. ONNX Runtime keeps its own license.
+
+The phoneme model sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20 is
+downloaded on the phone the first time listening starts. It is not
+in this repository.
