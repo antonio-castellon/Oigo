@@ -17,33 +17,39 @@ A phone is still a small screen, even with the type set large. For someone whose
 
 Oigo continues [Grok Assistant](https://github.com/antonio-castellon/Grok_Assistant), on a computer, and [Grok Pi Assistance](https://github.com/antonio-castellon/Grok_Pi_Assistance), on a Raspberry Pi. In my case the person is my father. I wanted him to have Grok as someone to talk to, without having to read.
 
+Other apps listen, read messages, or place calls. This one is not trying to take their place. It is made so an older person only has to hit one button, and can ask or tell something by speaking.
+
+## Screen
 The screen is almost empty on purpose. One large button in the middle turns the microphone back on. Asking, carrying on, and stopping are done by voice, as naturally as I could make it inside what Android allows. Settings live in a small icon at the upper left, set a little below the status bar, so a swipe down for notifications does not land on it.
 
+<p align="center">
+  <img src="docs/img/home.png" width="250" alt="The Listen button, in the middle">
+</p>
+
+## Microphone
 The microphone stays open for as long as the system will allow. What it hears in the house does not leave the phone. Only a phrase that is actually addressed to Grok is sent on. You open it with "hola grok" — or "hey grok", if that one is preferred.
-
-Once the conversation is open, every phrase for the phone starts with the word grok. "Grok, what's the weather." "Grok, tell me a story." The words after that are the request. You close it with "grok, gracias", or with another short goodbye that starts the same way. A stretch of quiet closes it too.
-
-Grok is how you address the phone, the agent. There is no voice print to tell who is speaking. The microphone keeps hearing the room: the television, another person, and the assistant's own voice while it answers. Only a phrase that starts with grok is taken as meant for it, and only that phrase can leave the phone. Anything else stays on the device, and it does not break the quiet that ends the conversation.
-
-The chat is not stored at xAI. Each question goes out on its own. The phone does not send the searched pages again. Of what was said it keeps a short summary of the day and the latest lines, and that covers about twelve hours, the daytime. It is changed in settings, under "Hours the chat remembers", one hour at a time, up to twenty-four. "Grok, gracias" and silence close the listening, not that day. "Grok, forget" does clear the chat.
-
-Notes and alarms are a different box, on the phone itself, and they do not leave with the chat. "Grok, remember that…" repeats it and saves it if you say "grok, yes". "Grok, wake me at eight" offers an alarm: it says the time and the reminder, and saves it only after "grok, yes". "Grok, what do you remember" says them. "Grok, forget the notes" and "grok, cancel the alarms" remove them.
 
 When the conversation opens, the app sets the speaker to the voice volume saved in settings. It starts at 80%. Nobody has to open the phone's volume bar and turn it up by hand each time. It is changed in settings, in steps of ten, under "Voice volume".
 
-The first time you open it, it does not record your voice and it does not take a voice print. The phrase is already written, as phonemes, not as a recording of the person. It still needs a try on a real microphone: some of them clip the start of a word, and then the phrase is never heard.
+Once the conversation is open, every phrase for the phone starts with the word grok. "Grok, what's the weather." "Grok, tell me a story." The words after that are the request. You close it with "grok, gracias", or with another short goodbye that starts the same way. The conversation closes by itself after a while of silence (1 minute by default, and that can be changed).
 
-Other apps listen, read messages, and place calls. This one is not trying to replace them. It is there so an older person only has to hit one button, and can ask or talk the way they would to someone in the room. Later, if it is needed, WhatsApp reading and calling someone from the address book can be turned on in settings. A new message is never read aloud on its own. Even with the conversation closed, it asks who it is from. When the question ends, a short tone plays. After it, "yes" or "grok, yes" is enough, and that does not open the conversation. With listening on, "call …" or "grok, call …" dials without opening the chat. Later it has to be "grok, yes", and the same listening that waits for "hola grok" hears it. If the chat is already open, "grok, yes" confirms it too, and the chat goes on. The text is spoken only after that yes. Another phrase in the conversation does not throw the notice away. If the listen button is off, it still gives the notice, and the question waits until listening is on. You can also ask for the last few messages from a person, by the name of that chat. That, and a new notice, comes from the phone notification. The chat inside WhatsApp or Telegram is not opened. If the notice is missing, or it was cleared, that conversation cannot be read. Sending on Telegram is not there yet.
+Grok is how you address the phone, the agent. There is no voice print to tell who is speaking. The microphone keeps hearing the room: the television, another person, and the assistant's own voice while it answers. Only a phrase that starts with grok is taken as meant for it, and only that phrase can leave the phone. Anything else stays on the device.
 
-The official Grok app, even when it is already on the phone, does not share its login. There is no way to link the account without typing anything. An API key is pasted once, from [console.x.ai](https://console.x.ai), and it stays on the phone. If the credit runs out, the voice says it needs more fuel.
+The chat is not stored at xAI. Of what was said it keeps a short summary of the day and the latest lines, on the phone, as the context of the conversation, and that covers about twelve hours, the daytime. It is changed in settings, under "Hours the chat remembers", one hour at a time, up to twenty-four. "Grok, gracias" and silence close the listening, not the day's context. "Grok, forget" does clear the chat and its local context.
 
-Android sometimes closes an app that has been listening for a while. If it kills the process, the microphone does not come back by itself: open the app and press the button. If the app is still alive but the microphone has stopped, it speaks a short warning a few times, a few minutes apart, in case nobody was near the phone the first time. How many times, and how far apart, can be changed in settings.
+## Alarms / notifications
+Notes and alarms are stored locally on the phone itself, and they do not go to the cloud the way questions in a chat do. "Grok, remember that…" repeats it and saves it if you say "grok, yes". "Grok, wake me at eight" offers an alarm: it says the time and the reminder, and saves it only after "grok, yes". "Grok, what do you remember" says them. "Grok, forget the notes" and "grok, cancel the alarms" remove them.
+
+In settings you can turn on WhatsApp reading and also calling someone from the address book by voice. New messages are not read on their own. It says a text message has arrived and, after a tone, asks for a spoken yes before reading. Then you can say "yes" or "grok, yes", and without opening a conversation it reads the message from the notification. If the notifications are cleared, nothing can be read, because the system does not open the WhatsApp chat or the Telegram chat. I have not yet managed to make the same thing work for Telegram. That stays as a task for a later version.
+
+The command "call …" or "grok, call …" dials, and it does not open the chat either.
+
+Android sometimes closes an app that has been listening for a while. If it kills the app process, unfortunately for everyday use the microphone does not come back by itself: open the app and press the button. If the app is still alive but the microphone is no longer in listen mode, it speaks a short warning a few times, a few minutes apart, in case nobody was near the phone the first time. How many times, and how far apart, can be changed in settings.
+
+## Settings
+The official Grok app, even when it is already on the phone, does not share its login. An API key from [console.x.ai](https://console.x.ai) is required, and it is stored encrypted on the phone. If the credit runs out, the voice says it needs more fuel on any interaction.
 
 The app speaks Spanish, English, French, German, and Italian.
-
-<p align="center">
-  <img src="docs/img/home.png" width="280" alt="The Listen button, in the middle">
-</p>
 
 ## Every phrase starts with grok
 
