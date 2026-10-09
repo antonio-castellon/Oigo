@@ -15,9 +15,19 @@ Un teléfono, aunque se le ponga la letra muy grande, sigue siendo una pantalla 
 
 Oigo sigue el camino de [Grok Assistant](https://github.com/antonio-castellon/Grok_Assistant), en el ordenador, y de [Grok Pi Assistance](https://github.com/antonio-castellon/Grok_Pi_Assistance), en la Raspberry. En mi caso la persona es mi padre. Quería que pudiera tener a Grok como compañero de conversación, y que para eso no tuviera que leer.
 
+Hay otras aplicaciones que escuchan, leen mensajes o llaman. Esta no intenta ocupar su sitio. Está hecha para que una persona mayor solo tenga que acertar un botón, y para que lo que quiera preguntar o contar pueda decirlo hablando. 
+
+## Pantalla 
 La pantalla, a propósito, casi no tiene nada. Un botón grande en el centro vuelve a abrir el micrófono. Preguntar, seguir hablando y terminar se hace con la voz, de la forma más natural que he podido dejar dentro de lo que Android permite. Los ajustes están en un icono pequeño, arriba a la izquierda y un poco separado de la barra, para no pulsarlo sin querer al bajar las notificaciones.
 
+<p align="center">
+  <img src="docs/img/home.png" width="250" alt="El botón Escuchar, en el centro">
+</p>
+
+## Microfono
 El micrófono procura quedarse abierto todo el tiempo que el sistema lo consiente. Lo que se oye en casa no sale del teléfono. Solo una frase dirigida a Grok viaja a la nube. Se abre con «hola grok» —o con «hey grok», si se prefiere esa—.
+
+Al abrir la conversación, la aplicación pone el altavoz en el volumen de la voz que está guardado en ajustes. Viene al 80 %. Así no hay que ir cada vez a la barra del teléfono a subirlo a mano. Se cambia en ajustes, de diez en diez, en «Volumen de la voz».
 
 Ya en conversación, cada frase para el teléfono empieza por la palabra grok. «Grok, qué tiempo hace.» «Grok, cuéntame un cuento.» Detrás va lo que se le pide. Se cierra con «grok, gracias», o con un adiós corto que también empiece así. La conversacion se cierra sola si pasa un rato en silencio (1 minuto por defecto, pero se puede cambiar).
 
@@ -25,13 +35,8 @@ Grok es la forma de dirigirse al móvil, al agente. No hay huella de voz que dis
 
 La charla no queda guardada en xAI. De lo hablado guarda un resumen corto del día y las últimas frases en local como contexto de la conversación, y eso cubre unas doce horas, el día diurno. Se cambia en ajustes, en «Horas que la charla recuerda», de hora en hora, hasta veinticuatro. «Grok, gracias» y el silencio cierran la escucha, no el contexto de día. «Grok, olvida» sí borra la charla y su conexto en local.
 
+## Alarmas / Notificaciones
 Los recuerdos y las alarmas se guardan localmente en el propio teléfono, y no se van como las preguntas en una charla a la nube. «Grok, recuerda que…» lo repite y lo apunta si dices «grok, sí». «Grok, avísame a las ocho» propone una alarma: dice la hora y el aviso, y solo la guarda con un «grok, sí». «Grok, qué recuerdas» los dice. «Grok, borra los recuerdos» y «grok, cancela las alarmas» los quitan.
-
-Al abrir la conversación, la aplicación pone el altavoz en el volumen de la voz que está guardado en ajustes. Viene al 80 %. Así no hay que ir cada vez a la barra del teléfono a subirlo a mano. Se cambia en ajustes, de diez en diez, en «Volumen de la voz».
-
-La primera vez no hay que grabar la voz ni dejar una huella de voz como en las anteriores aplicaciones. La frase de activación está escrita en fonemas, no es una grabación de la persona, así que detecta cualquier voz en la sala. Aun así hay que probarla con el micrófono de verdad: algunos recortan el principio de la palabra, y entonces la frase no llega a oírse.
-
-Hay otras aplicaciones que escuchan, leen mensajes o llaman. Esta no intenta ocupar su sitio. Está hecha para que una persona mayor solo tenga que acertar un botón, y para que lo que quiera preguntar o contar pueda decirlo hablando. 
 
 En justes se puede encender la lectura de WhatsApp y también llamar a alguien de la agenda por la voz. Pero los mensajes nuevos no se leen solos. Explica que ha recibido un mensaje de texto y pide confirmación de lectura por voz después de un tono. Entonces puedes decir «sí», o «grok, sí», y sin abrir una conversación, te lee el contenido del mensaje de la notificación, si se elimina las notificaciones no se puede leer nada ya que el sistema no abre el chat de WhatsApp ni el del Telegram. De momento no he logrado que funcione igualmente con Telegram, queda como tarea pendiente para próximas versiones.
 
@@ -39,14 +44,11 @@ El comando «llamar a…» o «grok, llamar a…» marca tampoco abre la charla.
 
 Android, a veces, cierra lo que lleva un rato escuchando. Si mata el proceso de la aplicación por desgracia para la usabilidad el micrófono no vuelve solo: hay que abrir la aplicación y pulsar el botón. Si la aplicación sigue viva pero el micrófono ya no esta en modo escucha, avisa por voz unas pocas veces, con unos minutos de por medio, por si la persona no estaba cerca en el primer aviso. Cuántas veces, y cada cuánto, se cambia en ajustes.
 
+## Configuración 
 Aunque el móvil tenga ya la aplicación oficial de Grok, esta no puede usar esa sesión. Se necesita una clave de la API [console.x.ai](https://console.x.ai) que se guarda localmente crifrada. Si el crédito se acaba, la voz dice que necesita más gasolina a cualquier interacción.
-
 
 La aplicación habla español, inglés, francés, alemán e italiano.
 
-<p align="center">
-  <img src="docs/img/home.png" width="280" alt="El botón Escuchar, en el centro">
-</p>
 
 ## Cada frase empieza por grok
 
