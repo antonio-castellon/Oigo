@@ -86,7 +86,7 @@ Android 9 ou plus récent, un téléphone ARM ordinaire (64 ou 32 bits). Il faut
 
 ## Comment la préparer
 
-1. Téléchargez l'APK de la [version 1.0.35](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.35).
+1. Téléchargez l'APK de la [version 1.0.37](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.37).
 2. Sur le téléphone, autorisez l'installation depuis cette source et ouvrez le fichier.
 3. Ouvrez Oigo et touchez la petite icône en haut à gauche.
 4. Collez la clé. Changez la langue, la phrase ou le volume de la voix si vous voulez. Elle est sur « hola grok », et le volume à 80 %.

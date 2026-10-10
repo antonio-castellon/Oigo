@@ -85,7 +85,7 @@ Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micr�
 
 ## Cómo dejarla lista
 
-1. Baja el APK de la [versión 1.0.35](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.35).
+1. Baja el APK de la [versión 1.0.37](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.37).
 2. En el teléfono, permite instalar desde ese origen y abre el archivo.
 3. Abre Oigo y pulsa el icono pequeño de arriba a la izquierda.
 4. Pega la clave. Si quieres, cambia el idioma, la frase o el volumen de la voz. Viene en «hola grok», y el volumen al 80 %.

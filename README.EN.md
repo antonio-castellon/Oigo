@@ -86,7 +86,7 @@ Android 9 or newer, a normal ARM phone (64-bit or 32-bit). It needs a microphone
 
 ## How to set it up
 
-1. Download the APK from the [1.0.35 release](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.35).
+1. Download the APK from the [1.0.37 release](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.37).
 2. On the phone, allow install from that source and open the file.
 3. Open Oigo and tap the small icon at the upper left.
 4. Paste the key. Change the language, the phrase, or the voice volume if you want. It starts as "hola grok", and the volume at 80%.

@@ -86,7 +86,7 @@ Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht
 
 ## So wird sie eingerichtet
 
-1. Lade das APK der [Version 1.0.35](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.35).
+1. Lade das APK der [Version 1.0.37](https://github.com/antonio-castellon/Oigo/releases/tag/v1.0.37).
 2. Erlaube auf dem Telefon die Installation aus dieser Quelle und öffne die Datei.
 3. Öffne Oigo und tippe das kleine Symbol oben links.
 4. Füge den Schlüssel ein. Sprache, Satz oder Lautstärke der Stimme kannst du ändern. Voreingestellt sind „hola grok“ und 80 % Lautstärke.

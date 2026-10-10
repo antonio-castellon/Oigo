@@ -10,3 +10,5 @@
 .DS_Store
 captures/
 *.keystore
+*.jks
+keystore.properties
