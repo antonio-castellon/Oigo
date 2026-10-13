@@ -106,7 +106,10 @@ class Store(context: Context) {
     }
 
     /** Several pronunciations, one tag. Spanish “hola” has a silent h. */
-    fun keywordsText(): String = (if (wake == WAKE_HEY) HEY_LINES else HOLA_LINES) + ANSWER_LINES
+    fun wakeLines(): String = if (wake == WAKE_HEY) HEY_LINES else HOLA_LINES
+
+    /** Wake words plus yes and no. Yes and no are only for a waiting message. */
+    fun keywordsText(): String = wakeLines() + ANSWER_LINES
 
     fun wakeWords(): List<String> = if (wake == WAKE_HEY) {
         listOf("hey grok", "ok grok", "okay grok")

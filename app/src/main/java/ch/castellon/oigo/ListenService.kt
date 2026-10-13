@@ -89,6 +89,8 @@ class ListenService : Service() {
     private var record: AudioRecord? = null
     private var spotter: KeywordSpotter? = null
     private var stream: OnlineStream? = null
+    /** Idle ear spots only the wake words. Yes and no load while a notice is waiting. */
+    @Volatile private var answersOn = false
     private var recognizer: SpeechRecognizer? = null
     private var speaker: Speaker? = null
     private var ear: Thread? = null
@@ -270,7 +272,8 @@ class ListenService : Service() {
             stream = null
             spotter = null
             spotter = KeywordSpotter(config = config)
-            stream = spotter?.createStream()
+            answersOn = false
+            stream = spotter?.createStream(store.wakeLines())
             Log.i(TAG, "kws ready")
             Trace.event("kws ready")
             main.post { wake() }
@@ -371,9 +374,26 @@ class ListenService : Service() {
             }
             energy += sum
             samples += n
-            val heard = stream
             val engine = spotter
-            if (heard == null || engine == null || heard.ptr == 0L) {
+            if (engine == null) {
+                if (!nap()) break
+                continue
+            }
+            val wantAnswers = Inbox.hasPending()
+            if (wantAnswers != answersOn || stream == null || stream?.ptr == 0L) {
+                val next = engine.createStream(
+                    if (wantAnswers) Store(this).keywordsText() else Store(this).wakeLines(),
+                )
+                val previous = stream
+                stream = next
+                if (wantAnswers != answersOn) {
+                    Log.i(TAG, if (wantAnswers) "kws answers on" else "kws wake only")
+                }
+                answersOn = wantAnswers
+                previous?.release()
+            }
+            val heard = stream
+            if (heard == null || heard.ptr == 0L) {
                 if (!nap()) break
                 continue
             }
@@ -402,6 +422,8 @@ class ListenService : Service() {
                     },
                 )
                 engine.reset(heard)
+                val yesNo = keyword.contains("GROK_YES") || keyword.contains("GROK_NO")
+                if (yesNo && !Inbox.hasPending()) continue
                 main.post {
                     when {
                         keyword.contains("GROK_YES") -> heardAnswer(true)

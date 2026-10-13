@@ -12,6 +12,10 @@ object Inbox {
     @Synchronized
     fun hasUnasked(): Boolean = pending != null && !asked
 
+    /** True while a notice can still be accepted or refused by voice. */
+    @Synchronized
+    fun hasPending(): Boolean = pending != null
+
     @Synchronized
     fun markAsked() {
         asked = true
