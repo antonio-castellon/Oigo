@@ -24,9 +24,13 @@ object ModelStore {
     fun ready(context: Context, keywords: String, onProgress: (Int) -> Unit): Ready {
         val root = File(context.filesDir, "kws")
         root.mkdirs()
-        val encoder = find(root, ENCODER)
-        if (encoder == null) {
-            download(root, onProgress)
+        if (!complete(root)) {
+            val pack = File(root, "model.tar.bz2")
+            if (!unpack(pack, root)) {
+                download(pack, onProgress)
+                if (!unpack(pack, root)) error("modelo incompleto")
+            }
+            pack.delete()
         }
         val found = Ready(
             dir = root,
@@ -45,15 +49,24 @@ object ModelStore {
         return root.walkTopDown().firstOrNull { it.isFile && it.name == name }
     }
 
-    private fun download(root: File, onProgress: (Int) -> Unit) {
-        val pack = File(root, "model.tar.bz2")
+    /** True only when every piece is present. A lone encoder is a download that was cut off. */
+    private fun complete(dir: File): Boolean {
+        return File(dir, ENCODER).length() > 10_000_000L &&
+            File(dir, DECODER).length() > 500_000L &&
+            File(dir, JOINER).length() > 200_000L &&
+            File(dir, "tokens.txt").length() > 200L
+    }
+
+    private fun download(pack: File, onProgress: (Int) -> Unit) {
+        val part = File(pack.parentFile, "model.tar.bz2.part")
+        part.delete()
         val connection = URL(URL_MODEL).openConnection() as HttpURLConnection
         connection.instanceFollowRedirects = true
         connection.connectTimeout = 20000
         connection.readTimeout = 120000
         connection.inputStream.use { input ->
             val total = connection.contentLengthLong
-            FileOutputStream(pack).use { output ->
+            FileOutputStream(part).use { output ->
                 val buffer = ByteArray(64 * 1024)
                 var read = 0L
                 while (true) {
@@ -65,18 +78,52 @@ object ModelStore {
                 }
             }
         }
-        BZip2CompressorInputStream(pack.inputStream()).use { bz ->
-            TarArchiveInputStream(bz).use { tar ->
-                while (true) {
-                    val entry = tar.nextEntry ?: break
-                    if (entry.isDirectory) continue
-                    val name = File(entry.name).name
-                    if (name != ENCODER && name != DECODER && name != JOINER && name != "tokens.txt") continue
-                    val out = File(root, name)
-                    FileOutputStream(out).use { tar.copyTo(it) }
+        connection.disconnect()
+        if (pack.exists()) pack.delete()
+        if (!part.renameTo(pack)) part.copyTo(pack, overwrite = true).also { part.delete() }
+    }
+
+    /** Unpacks the four needed files. Skipped entries are still read, or the next file is lost. */
+    private fun unpack(pack: File, root: File): Boolean {
+        if (!pack.isFile || pack.length() < 1_000_000L) return false
+        val incoming = File(root, "incoming")
+        incoming.deleteRecursively()
+        incoming.mkdirs()
+        try {
+            BZip2CompressorInputStream(pack.inputStream()).use { bz ->
+                TarArchiveInputStream(bz).use { tar ->
+                    while (true) {
+                        val entry = tar.nextEntry ?: break
+                        if (entry.isDirectory) continue
+                        val name = File(entry.name).name
+                        val wanted = name == ENCODER || name == DECODER || name == JOINER || name == "tokens.txt"
+                        if (!wanted) {
+                            discard(tar)
+                            continue
+                        }
+                        FileOutputStream(File(incoming, name)).use { tar.copyTo(it) }
+                    }
                 }
             }
+            if (!complete(incoming)) return false
+            for (name in listOf(ENCODER, DECODER, JOINER, "tokens.txt")) {
+                val from = File(incoming, name)
+                val to = File(root, name)
+                if (to.exists()) to.delete()
+                if (!from.renameTo(to)) from.copyTo(to, overwrite = true)
+            }
+            return complete(root)
+        } catch (_: Exception) {
+            pack.delete()
+            return false
+        } finally {
+            incoming.deleteRecursively()
         }
-        pack.delete()
+    }
+
+    private fun discard(tar: TarArchiveInputStream) {
+        val buffer = ByteArray(64 * 1024)
+        while (tar.read(buffer) >= 0) {
+        }
     }
 }

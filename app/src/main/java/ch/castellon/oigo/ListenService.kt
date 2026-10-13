@@ -164,6 +164,7 @@ class ListenService : Service() {
     override fun onDestroy() {
         live = null
         alive.set(false)
+        work.shutdownNow()
         messageEar = false
         followEar = false
         main.removeCallbacks(quiet)
@@ -272,9 +273,11 @@ class ListenService : Service() {
             Trace.event("kws ready")
             main.post { wake() }
         } catch (error: Exception) {
+            if (!alive.get()) return
             Log.e(TAG, "prepare failed", error)
             Trace.event("prepare failed ${error.javaClass.simpleName}")
             main.post {
+                if (!alive.get()) return@post
                 EarState.status.value = phrase(R.string.status_model_failed)
                 lose()
             }
