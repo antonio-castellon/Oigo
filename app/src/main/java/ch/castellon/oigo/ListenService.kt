@@ -7,6 +7,7 @@ import android.content.pm.ServiceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.audiofx.AutomaticGainControl
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -87,6 +88,7 @@ class ListenService : Service() {
     @Volatile private var open = false
     private var handed = false
     private var record: AudioRecord? = null
+    private var micBoost: AutomaticGainControl? = null
     private var spotter: KeywordSpotter? = null
     private var stream: OnlineStream? = null
     /** Idle ear spots only the wake words. Yes and no load while a notice is waiting. */
@@ -239,7 +241,7 @@ class ListenService : Service() {
     private fun prepare() {
         val store = Store(this)
         try {
-            val model = ModelStore.ready(this, store.keywordsText()) { percent ->
+            val model = ModelStore.ready(this, store.wakeLines()) { percent ->
                 val line = phrase(R.string.status_downloading, percent)
                 main.post {
                     EarState.status.value = line
@@ -261,8 +263,8 @@ class ListenService : Service() {
                 ),
                 maxActivePaths = 8,
                 keywordsFile = java.io.File(model.dir, "keywords.txt").absolutePath,
-                keywordsScore = 2.0f,
-                keywordsThreshold = 0.05f,
+                keywordsScore = 3.0f,
+                keywordsThreshold = 0.01f,
                 numTrailingBlanks = 1,
             )
             closeMic()
@@ -273,8 +275,8 @@ class ListenService : Service() {
             spotter = null
             spotter = KeywordSpotter(config = config)
             answersOn = false
-            stream = spotter?.createStream(store.wakeLines())
-            Log.i(TAG, "kws ready")
+            stream = spotter?.createStream()
+            Log.i(TAG, "kws ready wake only")
             Trace.event("kws ready")
             main.post { wake() }
         } catch (error: Exception) {
@@ -344,7 +346,10 @@ class ListenService : Service() {
         val floats = FloatArray(1600)
         var samples = 0
         var energy = 0.0
+        var boostedEnergy = 0.0
         var decodes = 0
+        var gain = 12.0
+        var shown = 0.0
         while (earOn && alive.get() && !Thread.currentThread().isInterrupted) {
             if (mode != WAKE) {
                 if (!nap()) break
@@ -366,14 +371,32 @@ class ListenService : Service() {
                 continue
             }
             var sum = 0.0
+            var peak = 0.0
             for (i in 0 until n) {
                 val sample = buffer[i] / 32768.0
-                // Speech on this phone peaks near 0.02. The spotter misses that.
-                floats[i] = (sample * 6.0).coerceIn(-1.0, 1.0).toFloat()
                 sum += sample * sample
+                val abs = kotlin.math.abs(sample)
+                if (abs > peak) peak = abs
+            }
+            val rawRms = kotlin.math.sqrt(sum / n)
+            // This phone's speech sits near 0.01. Lift it toward 0.12, and keep the peaks inside 1.
+            if (rawRms > 0.004) {
+                val want = (0.12 / rawRms).coerceIn(8.0, 24.0)
+                gain = gain * 0.65 + want * 0.35
+            }
+            val limit = if (peak > 0.0) 0.95 / peak else gain
+            val used = kotlin.math.min(gain, limit)
+            var boosted = 0.0
+            for (i in 0 until n) {
+                val sample = buffer[i] / 32768.0 * used
+                floats[i] = sample.coerceIn(-1.0, 1.0).toFloat()
+                boosted += sample * sample
             }
             energy += sum
+            boostedEnergy += boosted
             samples += n
+            shown = shown * 0.45 + kotlin.math.sqrt(boosted / n) * 0.55
+            EarState.mic.value = shown.toFloat()
             val engine = spotter
             if (engine == null) {
                 if (!nap()) break
@@ -381,16 +404,24 @@ class ListenService : Service() {
             }
             val wantAnswers = Inbox.hasPending()
             if (wantAnswers != answersOn || stream == null || stream?.ptr == 0L) {
-                val next = engine.createStream(
-                    if (wantAnswers) Store(this).keywordsText() else Store(this).wakeLines(),
-                )
-                val previous = stream
-                stream = next
-                if (wantAnswers != answersOn) {
-                    Log.i(TAG, if (wantAnswers) "kws answers on" else "kws wake only")
+                val next = if (wantAnswers) {
+                    engine.createStream(Store(this).answerLines())
+                } else {
+                    engine.createStream()
                 }
-                answersOn = wantAnswers
-                previous?.release()
+                if (next.ptr == 0L) {
+                    Log.e(TAG, "kws stream rejected")
+                    next.release()
+                    if (!nap()) break
+                } else {
+                    val previous = stream
+                    stream = next
+                    if (wantAnswers != answersOn) {
+                        Log.i(TAG, if (wantAnswers) "kws answers on" else "kws wake only")
+                    }
+                    answersOn = wantAnswers
+                    previous?.release()
+                }
             }
             val heard = stream
             if (heard == null || heard.ptr == 0L) {
@@ -407,9 +438,16 @@ class ListenService : Service() {
             val keyword = engine.getResult(heard).keyword
             if (samples >= 32000) {
                 val rms = kotlin.math.sqrt(energy / samples)
-                Log.i(TAG, "mic rms=${String.format(Locale.US, "%.4f", rms)} decodes=$decodes")
+                val loud = kotlin.math.sqrt(boostedEnergy / samples)
+                Log.i(
+                    TAG,
+                    "mic rms=${String.format(Locale.US, "%.4f", rms)} " +
+                        "boosted=${String.format(Locale.US, "%.3f", loud)} " +
+                        "gain=${String.format(Locale.US, "%.1f", gain)} decodes=$decodes",
+                )
                 samples = 0
                 energy = 0.0
+                boostedEnergy = 0.0
                 decodes = 0
             }
             if (keyword.isNotBlank()) {
@@ -917,6 +955,10 @@ class ListenService : Service() {
             return false
         }
         mic.startRecording()
+        if (AutomaticGainControl.isAvailable()) {
+            micBoost = AutomaticGainControl.create(mic.audioSessionId)?.also { it.enabled = true }
+        }
+        Log.i(TAG, "mic open agc=${micBoost != null}")
         record = mic
         return true
     }
@@ -924,6 +966,12 @@ class ListenService : Service() {
     private fun closeMic() {
         val mic = record ?: return
         record = null
+        val boost = micBoost
+        micBoost = null
+        try {
+            boost?.release()
+        } catch (_: Exception) {
+        }
         try {
             mic.stop()
         } catch (_: Exception) {

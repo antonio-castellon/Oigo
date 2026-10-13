@@ -15,10 +15,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -102,6 +107,7 @@ private fun Home(hasKey: Boolean, onListen: () -> Unit, onSettings: () -> Unit) 
     val status by EarState.status.collectAsState()
     val inConversation by EarState.inConversation.collectAsState()
     val reply by EarState.reply.collectAsState()
+    val mic by EarState.mic.collectAsState()
     val idle = stringResource(R.string.status_idle)
     val ink = Color(0xFFE7F0EA)
     val paper = Color(0xFF101418)
@@ -159,6 +165,36 @@ private fun Home(hasKey: Boolean, onListen: () -> Unit, onSettings: () -> Unit) 
                     lineHeight = 30.sp,
                     maxLines = 2,
                 )
+            }
+            if (hasKey && listening) {
+                val loud = (mic / 0.20f).coerceIn(0f, 1f)
+                val (micWords, micColor) = when {
+                    mic < 0.02f -> stringResource(R.string.mic_quiet) to Color(0xFF8E9B94)
+                    mic < 0.06f -> stringResource(R.string.mic_low) to Color(0xFFE6A817)
+                    else -> stringResource(R.string.mic_hot) to Color(0xFF3DDC84)
+                }
+                Text(
+                    text = micWords,
+                    color = micColor,
+                    fontSize = 22.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 22.dp),
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .width(240.dp)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(Color(0xFF2C3532)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(loud)
+                            .height(18.dp)
+                            .background(micColor),
+                    )
+                }
             }
             if (hasKey) {
                 Text(

@@ -21,6 +21,9 @@
     <string name="status_need_mic">The microphone permission is required.</string>
     <string name="listen_button">Listen</string>
     <string name="listen_off">Don\'t listen</string>
+    <string name="mic_quiet">Microphone is quiet</string>
+    <string name="mic_low">Microphone is low</string>
+    <string name="mic_hot">Microphone hears you</string>
     <string name="settings">Settings</string>
     <string name="message_ask">New message from %1$s. If you want to hear it, say yes, after the tone.</string>
     <string name="message_ask_idle">New message from %1$s. Press listen and say yes, after the tone.</string>

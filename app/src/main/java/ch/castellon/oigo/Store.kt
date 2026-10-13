@@ -108,8 +108,11 @@ class Store(context: Context) {
     /** Several pronunciations, one tag. Spanish “hola” has a silent h. */
     fun wakeLines(): String = if (wake == WAKE_HEY) HEY_LINES else HOLA_LINES
 
+    /** Yes and no. Loaded only while a notice is waiting, on top of the wake words. */
+    fun answerLines(): String = ANSWER_LINES
+
     /** Wake words plus yes and no. Yes and no are only for a waiting message. */
-    fun keywordsText(): String = wakeLines() + ANSWER_LINES
+    fun keywordsText(): String = wakeLines() + answerLines()
 
     fun wakeWords(): List<String> = if (wake == WAKE_HEY) {
         listOf("hey grok", "ok grok", "okay grok")
@@ -125,18 +128,21 @@ class Store(context: Context) {
         // :score raises the path. #threshold is how sure the model must be.
         // A line that starts with HH misses Spanish “hola”, because that h is silent.
         private const val HOLA_LINES =
-            "OW1 L AA1 G R OW1 K :2.5 #0.06 @HOLA_GROK\n" +
-                "OW1 L AA1 G R AA1 K :2.5 #0.06 @HOLA_GROK\n" +
-                "OW1 L AA1 G R AO1 K :2.0 #0.08 @HOLA_GROK\n" +
-                "OW1 L AH0 G R OW1 K :2.0 #0.08 @HOLA_GROK\n" +
-                "HH OW1 L AA1 G R OW1 K :2.0 #0.10 @HOLA_GROK\n" +
-                "HH OW1 L AA1 G R AA1 K :2.0 #0.10 @HOLA_GROK\n" +
-                "o l a g r o k :2.0 #0.12 @HOLA_GROK\n" +
-                "ou l a g r ou k :2.0 #0.12 @HOLA_GROK\n"
+            "OW1 L AA1 G R OW1 K :4.0 #0.01 @HOLA_GROK\n" +
+                "OW1 L AA1 G R AA1 K :4.0 #0.01 @HOLA_GROK\n" +
+                "OW1 L AH0 G R OW1 K :4.0 #0.01 @HOLA_GROK\n" +
+                "AO1 L AA1 G R OW1 K :4.0 #0.01 @HOLA_GROK\n" +
+                "AO1 L AH0 G R AA1 K :4.0 #0.01 @HOLA_GROK\n" +
+                "AA1 L AA1 G R OW1 K :3.5 #0.02 @HOLA_GROK\n" +
+                "AA1 L AH0 G R OW1 K :3.5 #0.02 @HOLA_GROK\n" +
+                "L AA1 G R OW1 K :3.5 #0.02 @HOLA_GROK\n" +
+                "HH OW1 L AA1 G R OW1 K :3.0 #0.02 @HOLA_GROK\n" +
+                "o l a g r o k :4.0 #0.01 @HOLA_GROK\n" +
+                "ou l a g r ou k :4.0 #0.01 @HOLA_GROK\n"
         private const val HEY_LINES =
-            "HH EY1 G R OW1 K :2.0 #0.12 @HEY_GROK\n" +
-                "HH EY1 G R AA1 K :2.0 #0.12 @HEY_GROK\n" +
-                "EY1 G R OW1 K :2.0 #0.12 @HEY_GROK\n"
+            "HH EY1 G R OW1 K :3.0 #0.02 @HEY_GROK\n" +
+                "HH EY1 G R AA1 K :3.0 #0.02 @HEY_GROK\n" +
+                "EY1 G R OW1 K :3.5 #0.01 @HEY_GROK\n"
         private const val ANSWER_LINES =
             "G R OW1 K S IY1 :2.2 #0.14 @GROK_YES\n" +
                 "G R AA1 K S IY1 :2.2 #0.14 @GROK_YES\n" +

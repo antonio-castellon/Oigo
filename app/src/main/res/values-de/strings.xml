@@ -21,6 +21,9 @@
     <string name="status_need_mic">Die Mikrofonerlaubnis fehlt.</string>
     <string name="listen_button">Hören</string>
     <string name="listen_off">Nicht hören</string>
+    <string name="mic_quiet">Mikrofon ist still</string>
+    <string name="mic_low">Mikrofon ist leise</string>
+    <string name="mic_hot">Mikrofon hört dich</string>
     <string name="settings">Einstellungen</string>
     <string name="message_ask">Neue Nachricht von %1$s. Wenn du sie hören willst, sag ja, nach dem Ton.</string>
     <string name="message_ask_idle">Neue Nachricht von %1$s. Drück auf Zuhören und sag ja, nach dem Ton.</string>

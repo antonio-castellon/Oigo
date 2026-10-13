@@ -21,6 +21,9 @@
     <string name="status_need_mic">L\'autorisation du micro est nécessaire.</string>
     <string name="listen_button">Écouter</string>
     <string name="listen_off">Ne plus écouter</string>
+    <string name="mic_quiet">Micro en silence</string>
+    <string name="mic_low">Micro faible</string>
+    <string name="mic_hot">Le micro t\'entend</string>
     <string name="settings">Réglages</string>
     <string name="message_ask">Nouveau message de %1$s. Si tu veux l\'entendre, dis oui, après le signal.</string>
     <string name="message_ask_idle">Nouveau message de %1$s. Appuie sur écouter et dis oui, après le signal.</string>

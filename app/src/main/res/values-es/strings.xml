@@ -21,6 +21,9 @@
     <string name="status_need_mic">Hace falta el permiso del micrófono.</string>
     <string name="listen_button">Escuchar</string>
     <string name="listen_off">No escuchar</string>
+    <string name="mic_quiet">Micrófono en silencio</string>
+    <string name="mic_low">Micrófono bajo</string>
+    <string name="mic_hot">Micrófono te oye</string>
     <string name="settings">Ajustes</string>
     <string name="message_ask">Mensaje nuevo de %1$s. Si quieres oírlo, di sí, después del tono.</string>
     <string name="message_ask_idle">Mensaje nuevo de %1$s. Pulsa escuchar y di sí, después del tono.</string>

@@ -8,4 +8,6 @@ object EarState {
     val status = MutableStateFlow("")
     val inConversation = MutableStateFlow(false)
     val reply = MutableStateFlow("")
+    /** Boosted microphone level, about 0.12 when speech is loud enough. */
+    val mic = MutableStateFlow(0f)
 }
