@@ -23,6 +23,19 @@ class Store(context: Context) {
         get() = plain.getString(WAKE, WAKE_HOLA) ?: WAKE_HOLA
         set(value) = plain.edit().putString(WAKE, value).apply()
 
+    /** The word said instead of grok. Stored as typed. Matching uses [spokenName]. */
+    var name: String
+        get() = plain.getString(NAME, "grok") ?: "grok"
+        set(value) = plain.edit().putString(NAME, value.take(32)).apply()
+
+    var debug: Boolean
+        get() = plain.getBoolean(DEBUG, false)
+        set(value) = plain.edit().putBoolean(DEBUG, value).apply()
+
+    fun spokenName(): String = Phoneme.nameOf(name)
+
+    fun displayName(): String = name.trim().ifBlank { "Grok" }
+
     var language: String
         get() = plain.getString(LANGUAGE, "system") ?: "system"
         set(value) = plain.edit().putString(LANGUAGE, value).apply()
@@ -105,60 +118,32 @@ class Store(context: Context) {
         return base.createConfigurationContext(config)
     }
 
-    /** Several pronunciations, one tag. Spanish “hola” has a silent h. */
-    fun wakeLines(): String = if (wake == WAKE_HEY) HEY_LINES else HOLA_LINES
+    /** Phonemes of hola/hey plus the chosen name. Not a recording. */
+    fun wakeLines(): String = Phoneme.wakeLines(wake == WAKE_HEY, name)
 
-    /** Yes and no. Loaded only while a notice is waiting, on top of the wake words. */
-    fun answerLines(): String = ANSWER_LINES
+    /** Yes and no after the name. Loaded only while a notice is waiting. */
+    fun answerLines(): String = Phoneme.answerLines(name)
 
     /** Wake words plus yes and no. Yes and no are only for a waiting message. */
     fun keywordsText(): String = wakeLines() + answerLines()
 
-    fun wakeWords(): List<String> = if (wake == WAKE_HEY) {
-        listOf("hey grok", "ok grok", "okay grok")
-    } else {
-        listOf("hola grok")
+    fun wakeWords(): List<String> {
+        val who = spokenName()
+        return if (wake == WAKE_HEY) {
+            listOf("hey $who", "ok $who", "okay $who")
+        } else {
+            listOf("hola $who")
+        }
     }
 
     companion object {
         const val WAKE_HOLA = "hola"
         const val WAKE_HEY = "hey"
 
-        // Phones and pinyin of the zh-en model. Not a recording of the person.
-        // :score raises the path. #threshold is how sure the model must be.
-        // A line that starts with HH misses Spanish “hola”, because that h is silent.
-        private const val HOLA_LINES =
-            "OW1 L AA1 G R OW1 K :4.0 #0.01 @HOLA_GROK\n" +
-                "OW1 L AA1 G R AA1 K :4.0 #0.01 @HOLA_GROK\n" +
-                "OW1 L AH0 G R OW1 K :4.0 #0.01 @HOLA_GROK\n" +
-                "AO1 L AA1 G R OW1 K :4.0 #0.01 @HOLA_GROK\n" +
-                "AO1 L AH0 G R AA1 K :4.0 #0.01 @HOLA_GROK\n" +
-                "AA1 L AA1 G R OW1 K :3.5 #0.02 @HOLA_GROK\n" +
-                "AA1 L AH0 G R OW1 K :3.5 #0.02 @HOLA_GROK\n" +
-                "L AA1 G R OW1 K :3.5 #0.02 @HOLA_GROK\n" +
-                "HH OW1 L AA1 G R OW1 K :3.0 #0.02 @HOLA_GROK\n" +
-                "o l a g r o k :4.0 #0.01 @HOLA_GROK\n" +
-                "ou l a g r ou k :4.0 #0.01 @HOLA_GROK\n"
-        private const val HEY_LINES =
-            "HH EY1 G R OW1 K :3.0 #0.02 @HEY_GROK\n" +
-                "HH EY1 G R AA1 K :3.0 #0.02 @HEY_GROK\n" +
-                "EY1 G R OW1 K :3.5 #0.01 @HEY_GROK\n"
-        private const val ANSWER_LINES =
-            "G R OW1 K S IY1 :2.2 #0.14 @GROK_YES\n" +
-                "G R AA1 K S IY1 :2.2 #0.14 @GROK_YES\n" +
-                "G R OW1 K S IH1 :2.0 #0.16 @GROK_YES\n" +
-                "g r o k s i :2.0 #0.16 @GROK_YES\n" +
-                "G R OW1 K Y EH1 S :2.0 #0.16 @GROK_YES\n" +
-                "G R OW1 K W IY1 :2.0 #0.16 @GROK_YES\n" +
-                "G R OW1 K Y AA1 :2.0 #0.16 @GROK_YES\n" +
-                "G R OW1 K N OW1 :2.2 #0.14 @GROK_NO\n" +
-                "G R AA1 K N OW1 :2.2 #0.14 @GROK_NO\n" +
-                "g r o k n o :2.0 #0.16 @GROK_NO\n" +
-                "G R OW1 K N AO1 N :2.0 #0.16 @GROK_NO\n" +
-                "G R OW1 K N AY1 N :2.0 #0.16 @GROK_NO\n"
-
         private const val ARMED = "armed"
         private const val WAKE = "wake"
+        private const val NAME = "name"
+        private const val DEBUG = "debug"
         private const val LANGUAGE = "language"
         private const val REPEATS = "repeats"
         private const val MINUTES = "minutes"

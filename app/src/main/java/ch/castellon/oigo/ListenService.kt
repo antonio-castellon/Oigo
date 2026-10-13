@@ -7,7 +7,6 @@ import android.content.pm.ServiceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.media.audiofx.AutomaticGainControl
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -27,9 +26,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * The big button starts this service. The meter hears the room. When a voice
- * is loud enough, Android's recognizer checks for hola grok. The phoneme model
- * can still wake on its own. A question leaves the phone only after that phrase.
+ * The big button starts this service. Phonemes of the chosen name watch the room.
+ * Android's recognizer opens only after that name, or while a talk is open.
+ * It is not left running in the quiet, because each start plays a beep.
  */
 class ListenService : Service() {
     private val main = Handler(Looper.getMainLooper())
@@ -89,7 +88,6 @@ class ListenService : Service() {
     @Volatile private var open = false
     private var handed = false
     private var record: AudioRecord? = null
-    private var micBoost: AutomaticGainControl? = null
     private var spotter: KeywordSpotter? = null
     private var stream: OnlineStream? = null
     /** Idle ear spots only the wake words. Yes and no load while a notice is waiting. */
@@ -106,12 +104,10 @@ class ListenService : Service() {
     private var followUntil = 0L
     /** Next speech-recognizer restart. Grows after each miss, resets after a real result. */
     private var sttGap = 800L
+    private var lastMeterAt = 0L
+    private var lastRms = 0f
     /** The wake word just fired. The next phrase is its question, or a bare hello. */
     @Volatile private var wakeTail = false
-    /** The meter heard a voice, so Android speech recognition is checking the phrase. */
-    @Volatile private var spotEar = false
-    /** True until the room goes quiet, so one utterance opens the recognizer once. */
-    @Volatile private var spotHeld = false
     private var chime: android.media.ToneGenerator? = null
     private val quiet = Runnable {
         open = false
@@ -268,8 +264,8 @@ class ListenService : Service() {
                 ),
                 maxActivePaths = 8,
                 keywordsFile = java.io.File(model.dir, "keywords.txt").absolutePath,
-                keywordsScore = 3.0f,
-                keywordsThreshold = 0.01f,
+                keywordsScore = 2.0f,
+                keywordsThreshold = 0.10f,
                 numTrailingBlanks = 1,
             )
             closeMic()
@@ -301,7 +297,6 @@ class ListenService : Service() {
         messageEar = false
         followEar = false
         wakeTail = false
-        spotEar = false
         resetSttGap()
         main.removeCallbacks(answerTimeout)
         main.removeCallbacks(followTimeout)
@@ -318,7 +313,11 @@ class ListenService : Service() {
         VoiceLevel.apply(this, Store(this).voiceVolume)
         mode = WAKE
         EarState.inConversation.value = open
-        val line = phrase(R.string.status_listening)
+        val line = if (open) {
+            phrase(R.string.status_your_turn, Store(this).displayName())
+        } else {
+            phrase(R.string.status_listening, Store(this).wakeWords().first())
+        }
         EarState.status.value = line
         EarState.listening.value = true
         goForeground(line)
@@ -352,12 +351,8 @@ class ListenService : Service() {
         val floats = FloatArray(1600)
         var samples = 0
         var energy = 0.0
-        var boostedEnergy = 0.0
         var decodes = 0
-        var gain = 12.0
         var shown = 0.0
-        var loudBlocks = 0
-        var quietBlocks = 0
         while (earOn && alive.get() && !Thread.currentThread().isInterrupted) {
             if (mode != WAKE) {
                 if (!nap()) break
@@ -379,49 +374,16 @@ class ListenService : Service() {
                 continue
             }
             var sum = 0.0
-            var peak = 0.0
             for (i in 0 until n) {
                 val sample = buffer[i] / 32768.0
-                sum += sample * sample
-                val abs = kotlin.math.abs(sample)
-                if (abs > peak) peak = abs
-            }
-            val rawRms = kotlin.math.sqrt(sum / n)
-            // This phone's speech sits near 0.01. Lift it toward 0.12, and keep the peaks inside 1.
-            if (rawRms > 0.004) {
-                val want = (0.12 / rawRms).coerceIn(8.0, 24.0)
-                gain = gain * 0.65 + want * 0.35
-            }
-            val limit = if (peak > 0.0) 0.95 / peak else gain
-            val used = kotlin.math.min(gain, limit)
-            var boosted = 0.0
-            for (i in 0 until n) {
-                val sample = buffer[i] / 32768.0 * used
+                // 1.0.35 fed the model these raw samples. Later gain changed the sound and the phrase stopped matching.
                 floats[i] = sample.coerceIn(-1.0, 1.0).toFloat()
-                boosted += sample * sample
+                sum += sample * sample
             }
             energy += sum
-            boostedEnergy += boosted
             samples += n
-            shown = shown * 0.45 + kotlin.math.sqrt(boosted / n) * 0.55
+            shown = shown * 0.45 + kotlin.math.sqrt(sum / n) * 0.55
             EarState.mic.value = shown.toFloat()
-            if (shown >= 0.06) {
-                quietBlocks = 0
-                loudBlocks++
-                if (!spotHeld && loudBlocks >= 2) {
-                    spotHeld = true
-                    loudBlocks = 0
-                    main.post { spotPhrase() }
-                }
-            } else if (shown < 0.02) {
-                loudBlocks = 0
-                if (spotHeld) {
-                    quietBlocks++
-                    if (quietBlocks >= 4) spotHeld = false
-                }
-            } else {
-                loudBlocks = 0
-            }
             val engine = spotter
             if (engine == null) {
                 if (!nap()) break
@@ -460,19 +422,13 @@ class ListenService : Service() {
                 ready++
             }
             decodes += ready
-            val keyword = engine.getResult(heard).keyword
+            val result = engine.getResult(heard)
+            val keyword = result.keyword
             if (samples >= 32000) {
                 val rms = kotlin.math.sqrt(energy / samples)
-                val loud = kotlin.math.sqrt(boostedEnergy / samples)
-                Log.i(
-                    TAG,
-                    "mic rms=${String.format(Locale.US, "%.4f", rms)} " +
-                        "boosted=${String.format(Locale.US, "%.3f", loud)} " +
-                        "gain=${String.format(Locale.US, "%.1f", gain)} decodes=$decodes",
-                )
+                Log.i(TAG, "mic rms=${String.format(Locale.US, "%.4f", rms)} decodes=$decodes")
                 samples = 0
                 energy = 0.0
-                boostedEnergy = 0.0
                 decodes = 0
             }
             if (keyword.isNotBlank()) {
@@ -527,65 +483,20 @@ class ListenService : Service() {
         if (voice == null) wake() else voice.say(spoken) { if (open) hear() else hearFollow() }
     }
 
-    /**
-     * The phoneme model misses this voice. The phone recognizer hears Spanish.
-     * It opens once per utterance, after the meter says the voice is loud enough.
-     */
-    private fun spotPhrase() {
-        if (!alive.get() || mode != WAKE || messageEar || Inbox.hasPending()) return
-        spotEar = true
-        Log.i(TAG, "spot start")
-        Trace.event("spot start")
-        startStt(phrase(R.string.status_listening))
-    }
-
-    private fun onSpotPhrase(raw: String) {
-        spotEar = false
-        if (!alive.get()) return
-        val folded = Inbox.fold(raw)
-        Log.i(TAG, "spot '${raw.take(80)}'")
-        Trace.event("spot chars=${raw.length}")
-        if (!folded.contains("grok") && !folded.contains("grock")) {
-            Log.i(TAG, "spot skip")
-            Trace.event("spot skip")
-            wake()
-            return
-        }
-        resetSttGap()
-        open = true
-        EarState.inConversation.value = true
-        val rest = speechAfterGrok(raw)
-        if (rest.isNullOrBlank()) sayHello() else ask(rest)
-    }
-
-    /** Words after hola grok. Empty when the person only said the greeting. */
-    private fun speechAfterGrok(raw: String): String? {
-        val foldedParts = Inbox.fold(raw).split(" ").filter { it.isNotBlank() }
-        val original = raw.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-        val at = foldedParts.indexOfFirst { it == "grok" || it == "grock" }
-        if (at < 0) return null
-        val after = if (original.size == foldedParts.size) {
-            original.drop(at + 1)
-        } else {
-            foldedParts.drop(at + 1)
-        }
-        return after.joinToString(" ")
-            .trim()
-            .trimStart(':', ',', ';', '-', ' ')
-            .trim()
-            .ifBlank { null }
-    }
-
     private fun heardWake() {
         if (!alive.get() || mode != WAKE) return
         resetSttGap()
-        wakeTail = true
+        wakeTail = false
         open = true
         EarState.inConversation.value = true
         closeMic()
-        EarState.status.value = phrase(R.string.status_your_turn)
-        // The question may still be in the same breath. Speak only if nothing follows.
-        hear()
+        mode = TALK
+        val hello = phrase(R.string.hello)
+        EarState.reply.value = hello
+        EarState.status.value = phrase(R.string.status_your_turn, Store(this).displayName())
+        VoiceLevel.apply(this, Store(this).voiceVolume)
+        val voice = speaker
+        if (voice == null) hear() else voice.say(hello) { hear() }
     }
 
     private fun sayHello() {
@@ -597,7 +508,7 @@ class ListenService : Service() {
         mode = TALK
         val hello = phrase(R.string.hello)
         EarState.reply.value = hello
-        EarState.status.value = phrase(R.string.status_your_turn)
+        EarState.status.value = phrase(R.string.status_your_turn, Store(this).displayName())
         VoiceLevel.apply(this, Store(this).voiceVolume)
         val voice = speaker
         if (voice == null) hear() else voice.say(hello) { hear() }
@@ -674,7 +585,7 @@ class ListenService : Service() {
 
     private fun hear() {
         if (!alive.get()) return
-        startStt(phrase(R.string.status_your_turn))
+        startStt(phrase(R.string.status_your_turn, Store(this).displayName()))
     }
 
     private fun startStt(status: String) {
@@ -727,7 +638,16 @@ class ListenService : Service() {
     private val listener = object : RecognitionListener {
         override fun onReadyForSpeech(params: android.os.Bundle?) = Unit
         override fun onBeginningOfSpeech() = Unit
-        override fun onRmsChanged(rmsdB: Float) = Unit
+        override fun onRmsChanged(rmsdB: Float) {
+            lastRms = rmsdB
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastMeterAt < 80) return
+            lastMeterAt = now
+            // The phoneme meter is closed while this recognizer holds the microphone.
+            // Quiet sits under about 1 dB. Speech climbs past that.
+            val level = if (rmsdB < 1f) 0.001f else ((rmsdB - 1f) / 280f).coerceIn(0.004f, 0.03f)
+            EarState.mic.value = EarState.mic.value * 0.45f + level * 0.55f
+        }
         override fun onBufferReceived(buffer: ByteArray?) = Unit
         override fun onEndOfSpeech() = Unit
         override fun onPartialResults(partialResults: android.os.Bundle?) = Unit
@@ -736,12 +656,11 @@ class ListenService : Service() {
             if (mode != HEAR) return
             resetSttGap()
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
-            Log.i(TAG, "stt '${text.take(80)}'")
+            Log.i(TAG, "stt '${text.take(80)}' rms=${String.format(Locale.US, "%.1f", lastRms)}")
             val heardWords = Inbox.fold(text).split(" ").count { it.isNotBlank() }
             Trace.event("stt chars=${text.length} words=$heardWords")
             when {
                 messageEar -> onMessagePhrase(text)
-                spotEar -> onSpotPhrase(text)
                 followEar && !open -> onCommandPhrase(text)
                 else -> onPhrase(text)
             }
@@ -750,22 +669,6 @@ class ListenService : Service() {
             Log.i(TAG, "stt error $error")
             Trace.event("stt error $error")
             if (!alive.get() || mode != HEAR) return
-            if (spotEar) {
-                spotEar = false
-                if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-                    lose()
-                    return
-                }
-                if (error == SpeechRecognizer.ERROR_CLIENT || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
-                    try {
-                        recognizer?.destroy()
-                    } catch (_: Exception) {
-                    }
-                    recognizer = null
-                }
-                wake()
-                return
-            }
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 lose()
                 return
@@ -806,11 +709,13 @@ class ListenService : Service() {
             }
             Log.i(TAG, "stt skip ${Inbox.fold(raw).trim().substringBefore(' ')}")
             Trace.word("stt skip", Inbox.fold(raw))
+            remember(raw, false)
             listenForAnswer()
             return
         }
         Log.i(TAG, "message choice ${folded.substringBefore(' ')}")
         Trace.word("message choice", folded)
+        remember(raw, false)
         messageEar = false
         main.removeCallbacks(answerTimeout)
         mode = TALK
@@ -852,7 +757,7 @@ class ListenService : Service() {
             return
         }
         EarState.inConversation.value = open
-        startStt(phrase(R.string.status_your_turn))
+        startStt(phrase(R.string.status_your_turn, Store(this).displayName()))
     }
 
     private fun onCommandPhrase(raw: String) {
@@ -867,6 +772,7 @@ class ListenService : Service() {
         if (!addressed && !Commands.handles(text)) {
             Log.i(TAG, "stt skip ${Inbox.fold(raw).trim().substringBefore(' ')}")
             Trace.word("stt skip", Inbox.fold(raw))
+            remember(raw, false)
             listenFollow()
             return
         }
@@ -875,22 +781,23 @@ class ListenService : Service() {
         followEar = false
         main.removeCallbacks(followTimeout)
         mode = TALK
-        ask(text)
+        ask(text, raw)
     }
 
-    private fun ask(text: String) {
+    private fun ask(text: String, shown: String = text) {
         work.execute {
             val spoken = decide(text)
             main.post {
+                remember(shown, spoken.sent)
                 if (!alive.get()) return@post
-                if (spoken.isNullOrBlank()) {
+                if (spoken.line.isNullOrBlank()) {
                     next()
                 } else {
                     mode = TALK
-                    EarState.reply.value = spoken
+                    EarState.reply.value = spoken.line
                     VoiceLevel.apply(this, Store(this).voiceVolume)
                     val voice = speaker
-                    if (voice == null) finishCallLine { next() } else voice.say(spoken) { finishCallLine { next() } }
+                    if (voice == null) finishCallLine { next() } else voice.say(spoken.line) { finishCallLine { next() } }
                 }
             }
         }
@@ -900,66 +807,110 @@ class ListenService : Service() {
         if (wakeTail) {
             wakeTail = false
             val rest = wordsAfterWake(raw)
-            if (rest.isNullOrBlank()) sayHello() else ask(rest)
+            if (rest.isNullOrBlank()) {
+                remember(raw, false)
+                sayHello()
+            } else {
+                ask(rest, raw)
+            }
             return
         }
-        // No voice print. In a conversation only a phrase that starts with "grok" is for us.
+        // No voice print. In a conversation only a phrase that starts with the chosen name is for us.
         val question = questionForGrok(raw)
+        val folded = Inbox.fold(raw)
+        // "gracias" alone stays. The short goodbyes close the open chat without the name.
+        if (question.isNullOrBlank() && open && folded != "gracias" && isGoodbye(folded)) {
+            Log.i(TAG, "stt close")
+            Trace.event("stt close")
+            remember(raw, false)
+            endConversation()
+            return
+        }
         if (question.isNullOrBlank()) {
-            Log.i(TAG, "stt skip ${Inbox.fold(raw).trim().substringBefore(' ')}")
-            Trace.word("stt skip", Inbox.fold(raw))
+            Log.i(TAG, "stt skip ${folded.substringBefore(' ')}")
+            Trace.word("stt skip", folded)
+            remember(raw, false)
             if (!alive.get()) return
             if (awaitingAnswer()) hear() else wake()
             return
         }
-        ask(question)
+        ask(question, raw)
     }
 
-    private fun decide(text: String): String? {
+    /** Leaves the open chat and returns to the phoneme ear. */
+    private fun endConversation() {
+        open = false
+        EarState.inConversation.value = false
+        Memory.drop()
+        main.removeCallbacks(quiet)
+        try {
+            recognizer?.cancel()
+        } catch (_: Exception) {
+        }
+        val bye = phrase(R.string.bye)
+        mode = TALK
+        EarState.reply.value = bye
+        VoiceLevel.apply(this, Store(this).voiceVolume)
+        val voice = speaker
+        if (voice == null) wake() else voice.say(bye) { wake() }
+    }
+
+    private fun isGoodbye(folded: String): Boolean {
+        if (folded.isBlank() || folded.split(" ").size > 4) return false
+        return folded in GOODBYE
+    }
+
+    private data class Spoken(val line: String?, val sent: Boolean)
+
+    /** sent is true only when the phrase left the phone toward the Grok API. */
+    private fun decide(text: String): Spoken {
         val store = Store(localized())
         val ui = localized()
         val folded = Inbox.fold(text)
         if (Inbox.pending != null) {
-            if (agrees(folded)) return spokenMessage(true)
-            if (declines(folded)) return spokenMessage(false)
+            if (agrees(folded)) return Spoken(spokenMessage(true), false)
+            if (declines(folded)) return Spoken(spokenMessage(false), false)
             Log.i(TAG, "pending waits")
             Trace.event("pending waits")
         }
         if (Memory.waiting()) {
-            if (folded in YES) return Memory.answer(this, ui, true)
-            if (folded in NO) return Memory.answer(this, ui, false)
+            if (folded in YES) return Spoken(Memory.answer(this, ui, true), false)
+            if (folded in NO) return Spoken(Memory.answer(this, ui, false), false)
             Memory.drop()
         }
-        if (open && folded in GOODBYE && folded.split(" ").size <= 4) {
+        if (open && isGoodbye(folded)) {
             open = false
             EarState.inConversation.value = false
             EarState.reply.value = ""
             Memory.drop()
-            return ui.getString(R.string.bye)
+            main.removeCallbacks(quiet)
+            return Spoken(ui.getString(R.string.bye), false)
         }
         val useful = text.trim()
-        if (useful.isBlank()) return null
-        Memory.handle(this, ui, useful)?.let { return it }
+        if (useful.isBlank()) return Spoken(null, false)
+        Memory.handle(this, ui, useful)?.let { return Spoken(it, false) }
         if (forgetsChat(folded)) {
             grok.clear()
-            return ui.getString(R.string.chat_cleared)
+            return Spoken(ui.getString(R.string.chat_cleared), false)
         }
-        Commands.local(ui, store, useful)?.let { return it }
+        Commands.local(ui, store, useful)?.let { return Spoken(it, false) }
         if (!open) open = true
         EarState.status.value = ui.getString(R.string.status_thinking)
         main.removeCallbacks(stillThinking)
         main.postDelayed(stillThinking, 5_000L)
+        Log.i(TAG, "api send chars=${useful.length}")
         val answer = try {
             grok.ask(store, useful, languageName(store), Memory.block(this))
         } finally {
             main.removeCallbacks(stillThinking)
         }
-        return when (answer) {
+        val line = when (answer) {
             is GrokClient.Answer.Text -> Commands.fromCloud(ui, store, answer.value) ?: answer.value
             GrokClient.Answer.NeedKey -> ui.getString(R.string.need_key)
             GrokClient.Answer.Fuel -> ui.getString(R.string.fuel)
             GrokClient.Answer.Failed -> ui.getString(R.string.grok_failed)
         }
+        return Spoken(line, true)
     }
 
     /** The "Calling …" line is only the hand-off. Once it has been said, the screen drops it. */
@@ -1046,10 +997,7 @@ class ListenService : Service() {
             return false
         }
         mic.startRecording()
-        if (AutomaticGainControl.isAvailable()) {
-            micBoost = AutomaticGainControl.create(mic.audioSessionId)?.also { it.enabled = true }
-        }
-        Log.i(TAG, "mic open agc=${micBoost != null}")
+        Log.i(TAG, "mic open")
         record = mic
         return true
     }
@@ -1057,12 +1005,6 @@ class ListenService : Service() {
     private fun closeMic() {
         val mic = record ?: return
         record = null
-        val boost = micBoost
-        micBoost = null
-        try {
-            boost?.release()
-        } catch (_: Exception) {
-        }
         try {
             mic.stop()
         } catch (_: Exception) {
@@ -1102,6 +1044,15 @@ class ListenService : Service() {
     /** Screen and spoken lines follow the language chosen in the app. */
     private fun phrase(id: Int, vararg args: Any): String = localized().getString(id, *args)
 
+    /** Keeps seven heard phrases. Red on screen when the phrase stayed on the phone. */
+    private fun remember(line: String, sent: Boolean) {
+        if (!EarState.debug.value) return
+        val clean = line.trim().replace('\n', ' ').take(96)
+        if (clean.isBlank()) return
+        val next = EarState.lines.value + EarState.HeardLine(clean, sent)
+        EarState.lines.value = next.takeLast(7)
+    }
+
     private fun languageName(store: Store): String = when (store.language) {
         "es" -> "Spanish"
         "en" -> "English"
@@ -1127,37 +1078,39 @@ class ListenService : Service() {
      * A question in that same breath does not need a second "grok".
      */
     private fun wordsAfterWake(raw: String): String? {
-        val folded = Inbox.fold(raw).trim()
-        if (folded.isBlank()) return null
-        val parts = folded.split(" ").filter { it.isNotBlank() }
-        val bare = setOf(
-            "hola", "hey", "ok", "okay",
-            "hola grok", "hey grok", "ok grok", "okay grok", "grok", "grock",
-        )
-        if (folded in bare) return null
-        val prefixes = listOf("hola grok", "hey grok", "ok grok", "okay grok", "grok", "grock")
-        val original = raw.trim().split(Regex("\\s+"))
-        for (prefix in prefixes) {
-            val pre = prefix.split(" ")
-            if (parts.size > pre.size && parts.take(pre.size) == pre) {
-                return original.drop(pre.size).joinToString(" ")
-                    .trim()
-                    .trimStart(':', ',', ';', '-', ' ')
-                    .trim()
-                    .ifBlank { null }
-            }
-        }
-        return raw.trim()
+        val rest = afterName(raw)
+        if (rest != null) return rest.ifBlank { null }
+        val folded = Inbox.fold(raw)
+        if (folded.isBlank() || folded in setOf("hola", "hey", "ok", "okay")) return null
+        return raw.trim().ifBlank { null }
     }
 
-    /** The words after a leading "grok". Null when the phrase is not addressed to the app. */
-    private fun questionForGrok(raw: String): String? {
-        val first = Inbox.fold(raw).trim().substringBefore(' ')
-        if (first != "grok" && first != "grock") return null
-        return raw.trim().split(Regex("\\s+")).drop(1).joinToString(" ")
-            .trim()
-            .trimStart(':', ',', ';', '-', ' ')
-            .trim()
+    /** The words after the chosen name. Null when the phrase is not addressed to the app. */
+    private fun questionForGrok(raw: String): String? = afterName(raw)
+
+    /**
+     * Drops a leading hola/hey and the chosen name.
+     * Empty when only the greeting was said. Null when the name is missing.
+     */
+    private fun afterName(raw: String): String? {
+        val name = Store(this).spokenName()
+        val aliases = if (name == "grok") listOf("grok", "grock") else listOf(name)
+        val foldedParts = Inbox.fold(raw).split(" ").filter { it.isNotBlank() }
+        val original = raw.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        val greetings = setOf("hola", "hey", "ok", "okay")
+        for (alias in aliases) {
+            val pre = alias.split(" ")
+            val starts = mutableListOf(0)
+            if (foldedParts.firstOrNull() in greetings) starts += 1
+            for (at in starts) {
+                if (at + pre.size > foldedParts.size) continue
+                if (foldedParts.subList(at, at + pre.size) != pre) continue
+                val drop = at + pre.size
+                val rest = if (original.size == foldedParts.size) original.drop(drop) else foldedParts.drop(drop)
+                return rest.joinToString(" ").trim().trimStart(':', ',', ';', '-', ' ').trim()
+            }
+        }
+        return null
     }
 
     companion object {
@@ -1182,6 +1135,11 @@ class ListenService : Service() {
         private val GOODBYE = setOf(
             "gracias", "adios", "hasta luego", "bye", "goodbye",
             "au revoir", "tschuss", "ciao", "nada gracias", "ok gracias", "de rien", "danke",
+            "vale gracias", "ok vale", "okay vale", "okey vale",
+            "cierra conversacion", "cierra la conversacion",
+            "cerrar conversacion", "cerrar la conversacion",
+            "close the conversation", "ferme la conversation",
+            "beende das gesprach", "chiudi la conversazione",
         )
 
         fun start(context: Context) {

@@ -8,6 +8,13 @@ object EarState {
     val status = MutableStateFlow("")
     val inConversation = MutableStateFlow(false)
     val reply = MutableStateFlow("")
-    /** Boosted microphone level, about 0.12 when speech is loud enough. */
+    /** Raw microphone level. Speech on this phone sits near 0.01. */
     val mic = MutableStateFlow(0f)
+    val debug = MutableStateFlow(false)
+
+    /** One heard phrase. Green on screen when it was sent to Grok. */
+    data class HeardLine(val text: String, val sent: Boolean)
+
+    /** Last heard phrases, newest last. Shown only while debug is on. */
+    val lines = MutableStateFlow<List<HeardLine>>(emptyList())
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -54,6 +55,7 @@ open class LocalizedActivity : ComponentActivity() {
 /** One button. Settings sit below the status bar so a shade swipe misses them. */
 class MainActivity : LocalizedActivity() {
     private var hasKey by mutableStateOf(false)
+    private var called by mutableStateOf("Grok")
 
     private val askMic = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (!hasKey) return@registerForActivityResult
@@ -67,12 +69,14 @@ class MainActivity : LocalizedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { GrokTheme { Home(hasKey, ::listen, ::openSettings) } }
+        setContent { GrokTheme { Home(hasKey, called, ::listen, ::openSettings) } }
     }
 
     override fun onResume() {
         super.onResume()
         hasKey = Store(this).apiKey.isNotBlank()
+        called = Store(this).displayName()
+        EarState.debug.value = Store(this).debug
         if (!hasKey && EarState.listening.value) ListenService.stop(this)
     }
 
@@ -102,13 +106,15 @@ class MainActivity : LocalizedActivity() {
 }
 
 @Composable
-private fun Home(hasKey: Boolean, onListen: () -> Unit, onSettings: () -> Unit) {
+private fun Home(hasKey: Boolean, called: String, onListen: () -> Unit, onSettings: () -> Unit) {
     val listening by EarState.listening.collectAsState()
     val status by EarState.status.collectAsState()
     val inConversation by EarState.inConversation.collectAsState()
     val reply by EarState.reply.collectAsState()
     val mic by EarState.mic.collectAsState()
-    val idle = stringResource(R.string.status_idle)
+    val debugOn by EarState.debug.collectAsState()
+    val lines by EarState.lines.collectAsState()
+    val idle = stringResource(R.string.status_idle, called)
     val ink = Color(0xFFE7F0EA)
     val paper = Color(0xFF101418)
     Box(
@@ -132,7 +138,9 @@ private fun Home(hasKey: Boolean, onListen: () -> Unit, onSettings: () -> Unit) 
             )
         }
         Column(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(bottom = if (debugOn && lines.isNotEmpty()) 132.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (!hasKey) {
@@ -167,10 +175,10 @@ private fun Home(hasKey: Boolean, onListen: () -> Unit, onSettings: () -> Unit) 
                 )
             }
             if (hasKey && listening) {
-                val loud = (mic / 0.20f).coerceIn(0f, 1f)
+                val loud = (mic / 0.03f).coerceIn(0f, 1f)
                 val (micWords, micColor) = when {
-                    mic < 0.02f -> stringResource(R.string.mic_quiet) to Color(0xFF8E9B94)
-                    mic < 0.06f -> stringResource(R.string.mic_low) to Color(0xFFE6A817)
+                    mic < 0.003f -> stringResource(R.string.mic_quiet) to Color(0xFF8E9B94)
+                    mic < 0.008f -> stringResource(R.string.mic_low) to Color(0xFFE6A817)
                     else -> stringResource(R.string.mic_hot) to Color(0xFF3DDC84)
                 }
                 Text(
@@ -224,6 +232,27 @@ private fun Home(hasKey: Boolean, onListen: () -> Unit, onSettings: () -> Unit) 
                     lineHeight = 28.sp,
                     modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 16.dp),
                 )
+            }
+        }
+        if (debugOn && lines.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                lines.forEach { line ->
+                    Text(
+                        text = line.text,
+                        color = if (line.sent) Color(0xFF1B8F45) else Color(0xFFC62828),
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

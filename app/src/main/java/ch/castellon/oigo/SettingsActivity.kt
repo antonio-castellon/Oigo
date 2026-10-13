@@ -128,6 +128,33 @@ class SettingsActivity : LocalizedActivity() {
                     label = { Text(stringResource(R.string.wake_hey)) },
                 )
             }
+            var called by remember { mutableStateOf(store.name) }
+            OutlinedTextField(
+                value = called,
+                onValueChange = {
+                    called = it.take(32)
+                    store.name = called
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.wake_name)) },
+                singleLine = true,
+            )
+            Text(
+                text = Phoneme.spell(called),
+                color = ink,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            )
+            Text(stringResource(R.string.wake_name_help), color = ink, fontSize = 15.sp)
+            var debug by remember { mutableStateOf(store.debug) }
+            Toggle(stringResource(R.string.debug_mode), debug) {
+                debug = it
+                store.debug = it
+                EarState.debug.value = it
+                if (!it) EarState.lines.value = emptyList()
+            }
+            Text(stringResource(R.string.debug_help), color = ink, fontSize = 15.sp)
             var key by mutableStateOf(store.apiKey)
             OutlinedTextField(
                 value = key,

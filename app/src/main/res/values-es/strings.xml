@@ -8,8 +8,8 @@
     <string name="mic_stopped">El micrófono no está escuchando. Abre la aplicación y pulsa el botón.</string>
     <string name="status_preparing">Preparando el micrófono</string>
     <string name="status_downloading">Descargando el modelo de la frase, %1$d%%</string>
-    <string name="status_listening">Modo conversación. Di: Grok, y lo que quieras decirle. O di: Grok, gracias, para cerrar la conversación.</string>
-    <string name="status_your_turn">Di grok y la pregunta</string>
+    <string name="status_listening">Escucha. Di «%1$s».</string>
+    <string name="status_your_turn">Di %1$s y la pregunta</string>
     <string name="status_message_yes">Di sí</string>
     <string name="status_talk">Conversación abierta</string>
     <string name="in_conversation">En conversación</string>
@@ -17,7 +17,7 @@
     <string name="status_thinking">Pensando</string>
     <string name="still_thinking">Sigo pensando.</string>
     <string name="status_model_failed">No se pudo preparar el modelo de la frase</string>
-    <string name="status_idle">Pulsa el botón. Di «Grok,» y lo que quieras decir.</string>
+    <string name="status_idle">Pulsa el botón. Di «%1$s» y lo que quieras decir.</string>
     <string name="status_need_mic">Hace falta el permiso del micrófono.</string>
     <string name="listen_button">Escuchar</string>
     <string name="listen_off">No escuchar</string>
@@ -70,8 +70,12 @@
     <string name="language">Idioma</string>
     <string name="lang_system">Teléfono</string>
     <string name="wake_phrase">Frase clave</string>
-    <string name="wake_hola">Hola Grok</string>
-    <string name="wake_hey">Hey Grok</string>
+    <string name="wake_hola">Hola</string>
+    <string name="wake_hey">Hey</string>
+    <string name="wake_name">Nombre</string>
+    <string name="wake_name_help">Se guarda en fonemas, no es una grabación de tu voz. Vale al volver a pulsar Escuchar.</string>
+    <string name="debug_mode">Depuración</string>
+    <string name="debug_help">Abajo caben siete frases, en letra pequeña. En rojo no salen hacia Grok. En verde sí.</string>
     <string name="api_key">Clave de la API de xAI</string>
     <string name="api_key_help">La aplicación oficial de Grok no comparte su sesión. Pega una vez la clave de console.x.ai. Se queda en este teléfono.</string>
     <string name="model">Modelo</string>

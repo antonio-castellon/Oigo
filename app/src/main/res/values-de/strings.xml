@@ -8,8 +8,8 @@
     <string name="mic_stopped">Das Mikrofon hört nicht zu. Öffne die App und drücke den Knopf.</string>
     <string name="status_preparing">Mikrofon wird vorbereitet</string>
     <string name="status_downloading">Sprachmodell wird geladen, %1$d%%</string>
-    <string name="status_listening">Gesprächsmodus. Sag: Grok, und was du ihm sagen willst. Oder sag: Grok, danke, um das Gespräch zu schließen.</string>
-    <string name="status_your_turn">Sag grok und dann die Frage</string>
+    <string name="status_listening">Zuhören. Sag „%1$s“.</string>
+    <string name="status_your_turn">Sag %1$s und dann die Frage</string>
     <string name="status_message_yes">Sag ja</string>
     <string name="status_talk">Gespräch ist offen</string>
     <string name="in_conversation">Im Gespräch</string>
@@ -17,7 +17,7 @@
     <string name="status_thinking">Denkt nach</string>
     <string name="still_thinking">Ich denke noch nach.</string>
     <string name="status_model_failed">Das Sprachmodell konnte nicht vorbereitet werden</string>
-    <string name="status_idle">Drücke den Knopf. Sag „Grok,“ und was du sagen willst.</string>
+    <string name="status_idle">Drücke den Knopf. Sag „%1$s“ und was du sagen willst.</string>
     <string name="status_need_mic">Die Mikrofonerlaubnis fehlt.</string>
     <string name="listen_button">Hören</string>
     <string name="listen_off">Nicht hören</string>
@@ -70,8 +70,12 @@
     <string name="language">Sprache</string>
     <string name="lang_system">Telefon</string>
     <string name="wake_phrase">Schlüsselphrase</string>
-    <string name="wake_hola">Hola Grok</string>
-    <string name="wake_hey">Hey Grok</string>
+    <string name="wake_hola">Hola</string>
+    <string name="wake_hey">Hey</string>
+    <string name="wake_name">Name</string>
+    <string name="wake_name_help">Er wird als Phoneme gespeichert, keine Aufnahme deiner Stimme. Er gilt, wenn du wieder auf Hören tippst.</string>
+    <string name="debug_mode">Fehlersuche</string>
+    <string name="debug_help">Unten passen sieben Sätze in kleiner Schrift. Rot bleibt auf dem Telefon. Grün geht an Grok.</string>
     <string name="api_key">xAI-API-Schlüssel</string>
     <string name="api_key_help">Die offizielle Grok-App teilt ihre Anmeldung nicht. Füge einmal den Schlüssel von console.x.ai ein. Er bleibt auf diesem Telefon.</string>
     <string name="model">Modell</string>
