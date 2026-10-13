@@ -122,14 +122,14 @@ class Store(context: Context) {
         // :score raises the path. #threshold is how sure the model must be.
         // A line that starts with HH misses Spanish “hola”, because that h is silent.
         private const val HOLA_LINES =
-            "OW1 L AA1 G R OW1 K :2.5 #0.10 @HOLA_GROK\n" +
-                "OW1 L AA1 G R AA1 K :2.5 #0.10 @HOLA_GROK\n" +
-                "OW1 L AA1 G R AO1 K :2.0 #0.12 @HOLA_GROK\n" +
-                "OW1 L AH0 G R OW1 K :2.0 #0.12 @HOLA_GROK\n" +
-                "HH OW1 L AA1 G R OW1 K :2.0 #0.15 @HOLA_GROK\n" +
-                "HH OW1 L AA1 G R AA1 K :2.0 #0.15 @HOLA_GROK\n" +
-                "o l a g r o k :2.0 #0.18 @HOLA_GROK\n" +
-                "ou l a g r ou k :2.0 #0.18 @HOLA_GROK\n"
+            "OW1 L AA1 G R OW1 K :2.5 #0.06 @HOLA_GROK\n" +
+                "OW1 L AA1 G R AA1 K :2.5 #0.06 @HOLA_GROK\n" +
+                "OW1 L AA1 G R AO1 K :2.0 #0.08 @HOLA_GROK\n" +
+                "OW1 L AH0 G R OW1 K :2.0 #0.08 @HOLA_GROK\n" +
+                "HH OW1 L AA1 G R OW1 K :2.0 #0.10 @HOLA_GROK\n" +
+                "HH OW1 L AA1 G R AA1 K :2.0 #0.10 @HOLA_GROK\n" +
+                "o l a g r o k :2.0 #0.12 @HOLA_GROK\n" +
+                "ou l a g r ou k :2.0 #0.12 @HOLA_GROK\n"
         private const val HEY_LINES =
             "HH EY1 G R OW1 K :2.0 #0.12 @HEY_GROK\n" +
                 "HH EY1 G R AA1 K :2.0 #0.12 @HEY_GROK\n" +

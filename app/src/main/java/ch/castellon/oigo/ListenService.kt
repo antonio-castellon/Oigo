@@ -101,6 +101,8 @@ class ListenService : Service() {
     private var followUntil = 0L
     /** Next speech-recognizer restart. Grows after each miss, resets after a real result. */
     private var sttGap = 800L
+    /** The wake word just fired. The next phrase is its question, or a bare hello. */
+    @Volatile private var wakeTail = false
     private var chime: android.media.ToneGenerator? = null
     private val quiet = Runnable {
         open = false
@@ -258,7 +260,7 @@ class ListenService : Service() {
                 maxActivePaths = 8,
                 keywordsFile = java.io.File(model.dir, "keywords.txt").absolutePath,
                 keywordsScore = 2.0f,
-                keywordsThreshold = 0.10f,
+                keywordsThreshold = 0.05f,
                 numTrailingBlanks = 1,
             )
             closeMic()
@@ -288,6 +290,7 @@ class ListenService : Service() {
         if (!alive.get()) return
         messageEar = false
         followEar = false
+        wakeTail = false
         resetSttGap()
         main.removeCallbacks(answerTimeout)
         main.removeCallbacks(followTimeout)
@@ -338,6 +341,7 @@ class ListenService : Service() {
         val floats = FloatArray(1600)
         var samples = 0
         var energy = 0.0
+        var decodes = 0
         while (earOn && alive.get() && !Thread.currentThread().isInterrupted) {
             if (mode != WAKE) {
                 if (!nap()) break
@@ -361,7 +365,8 @@ class ListenService : Service() {
             var sum = 0.0
             for (i in 0 until n) {
                 val sample = buffer[i] / 32768.0
-                floats[i] = sample.toFloat()
+                // Speech on this phone peaks near 0.02. The spotter misses that.
+                floats[i] = (sample * 6.0).coerceIn(-1.0, 1.0).toFloat()
                 sum += sample * sample
             }
             energy += sum
@@ -373,13 +378,19 @@ class ListenService : Service() {
                 continue
             }
             heard.acceptWaveform(floats.copyOf(n), 16000)
-            while (earOn && engine.isReady(heard)) engine.decode(heard)
+            var ready = 0
+            while (earOn && engine.isReady(heard)) {
+                engine.decode(heard)
+                ready++
+            }
+            decodes += ready
             val keyword = engine.getResult(heard).keyword
             if (samples >= 32000) {
                 val rms = kotlin.math.sqrt(energy / samples)
-                Log.i(TAG, "mic rms=${String.format(Locale.US, "%.4f", rms)}")
+                Log.i(TAG, "mic rms=${String.format(Locale.US, "%.4f", rms)} decodes=$decodes")
                 samples = 0
                 energy = 0.0
+                decodes = 0
             }
             if (keyword.isNotBlank()) {
                 Log.i(TAG, "wake $keyword")
@@ -434,6 +445,18 @@ class ListenService : Service() {
     private fun heardWake() {
         if (!alive.get() || mode != WAKE) return
         resetSttGap()
+        wakeTail = true
+        open = true
+        EarState.inConversation.value = true
+        closeMic()
+        EarState.status.value = phrase(R.string.status_your_turn)
+        // The question may still be in the same breath. Speak only if nothing follows.
+        hear()
+    }
+
+    private fun sayHello() {
+        if (!alive.get()) return
+        wakeTail = false
         open = true
         EarState.inConversation.value = true
         closeMic()
@@ -443,11 +466,7 @@ class ListenService : Service() {
         EarState.status.value = phrase(R.string.status_your_turn)
         VoiceLevel.apply(this, Store(this).voiceVolume)
         val voice = speaker
-        if (voice == null) {
-            hear()
-        } else {
-            voice.say(hello) { hear() }
-        }
+        if (voice == null) hear() else voice.say(hello) { hear() }
     }
 
     /**
@@ -600,6 +619,12 @@ class ListenService : Service() {
                 lose()
                 return
             }
+            if (wakeTail &&
+                (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
+            ) {
+                sayHello()
+                return
+            }
             if (error == SpeechRecognizer.ERROR_CLIENT || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
                 try {
                     recognizer?.destroy()
@@ -721,6 +746,12 @@ class ListenService : Service() {
     }
 
     private fun onPhrase(raw: String) {
+        if (wakeTail) {
+            wakeTail = false
+            val rest = wordsAfterWake(raw)
+            if (rest.isNullOrBlank()) sayHello() else ask(rest)
+            return
+        }
         // No voice print. In a conversation only a phrase that starts with "grok" is for us.
         val question = questionForGrok(raw)
         if (question.isNullOrBlank()) {
@@ -928,6 +959,34 @@ class ListenService : Service() {
             folded.startsWith("empieza de cero") ||
             folded.startsWith("forget the chat") ||
             folded.startsWith("start over")
+    }
+
+    /**
+     * Words that followed "hola grok". Null when the person only said the greeting.
+     * A question in that same breath does not need a second "grok".
+     */
+    private fun wordsAfterWake(raw: String): String? {
+        val folded = Inbox.fold(raw).trim()
+        if (folded.isBlank()) return null
+        val parts = folded.split(" ").filter { it.isNotBlank() }
+        val bare = setOf(
+            "hola", "hey", "ok", "okay",
+            "hola grok", "hey grok", "ok grok", "okay grok", "grok", "grock",
+        )
+        if (folded in bare) return null
+        val prefixes = listOf("hola grok", "hey grok", "ok grok", "okay grok", "grok", "grock")
+        val original = raw.trim().split(Regex("\\s+"))
+        for (prefix in prefixes) {
+            val pre = prefix.split(" ")
+            if (parts.size > pre.size && parts.take(pre.size) == pre) {
+                return original.drop(pre.size).joinToString(" ")
+                    .trim()
+                    .trimStart(':', ',', ';', '-', ' ')
+                    .trim()
+                    .ifBlank { null }
+            }
+        }
+        return raw.trim()
     }
 
     /** The words after a leading "grok". Null when the phrase is not addressed to the app. */
