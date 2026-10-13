@@ -27,8 +27,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * The big button starts this service. Phonemes watch the room. Android's own
- * recognizer writes the question only after the phrase, or while a talk is open.
+ * The big button starts this service. The meter hears the room. When a voice
+ * is loud enough, Android's recognizer checks for hola grok. The phoneme model
+ * can still wake on its own. A question leaves the phone only after that phrase.
  */
 class ListenService : Service() {
     private val main = Handler(Looper.getMainLooper())
@@ -107,6 +108,10 @@ class ListenService : Service() {
     private var sttGap = 800L
     /** The wake word just fired. The next phrase is its question, or a bare hello. */
     @Volatile private var wakeTail = false
+    /** The meter heard a voice, so Android speech recognition is checking the phrase. */
+    @Volatile private var spotEar = false
+    /** True until the room goes quiet, so one utterance opens the recognizer once. */
+    @Volatile private var spotHeld = false
     private var chime: android.media.ToneGenerator? = null
     private val quiet = Runnable {
         open = false
@@ -296,6 +301,7 @@ class ListenService : Service() {
         messageEar = false
         followEar = false
         wakeTail = false
+        spotEar = false
         resetSttGap()
         main.removeCallbacks(answerTimeout)
         main.removeCallbacks(followTimeout)
@@ -350,6 +356,8 @@ class ListenService : Service() {
         var decodes = 0
         var gain = 12.0
         var shown = 0.0
+        var loudBlocks = 0
+        var quietBlocks = 0
         while (earOn && alive.get() && !Thread.currentThread().isInterrupted) {
             if (mode != WAKE) {
                 if (!nap()) break
@@ -397,6 +405,23 @@ class ListenService : Service() {
             samples += n
             shown = shown * 0.45 + kotlin.math.sqrt(boosted / n) * 0.55
             EarState.mic.value = shown.toFloat()
+            if (shown >= 0.06) {
+                quietBlocks = 0
+                loudBlocks++
+                if (!spotHeld && loudBlocks >= 2) {
+                    spotHeld = true
+                    loudBlocks = 0
+                    main.post { spotPhrase() }
+                }
+            } else if (shown < 0.02) {
+                loudBlocks = 0
+                if (spotHeld) {
+                    quietBlocks++
+                    if (quietBlocks >= 4) spotHeld = false
+                }
+            } else {
+                loudBlocks = 0
+            }
             val engine = spotter
             if (engine == null) {
                 if (!nap()) break
@@ -500,6 +525,55 @@ class ListenService : Service() {
         VoiceLevel.apply(this, Store(this).voiceVolume)
         val voice = speaker
         if (voice == null) wake() else voice.say(spoken) { if (open) hear() else hearFollow() }
+    }
+
+    /**
+     * The phoneme model misses this voice. The phone recognizer hears Spanish.
+     * It opens once per utterance, after the meter says the voice is loud enough.
+     */
+    private fun spotPhrase() {
+        if (!alive.get() || mode != WAKE || messageEar || Inbox.hasPending()) return
+        spotEar = true
+        Log.i(TAG, "spot start")
+        Trace.event("spot start")
+        startStt(phrase(R.string.status_listening))
+    }
+
+    private fun onSpotPhrase(raw: String) {
+        spotEar = false
+        if (!alive.get()) return
+        val folded = Inbox.fold(raw)
+        Log.i(TAG, "spot '${raw.take(80)}'")
+        Trace.event("spot chars=${raw.length}")
+        if (!folded.contains("grok") && !folded.contains("grock")) {
+            Log.i(TAG, "spot skip")
+            Trace.event("spot skip")
+            wake()
+            return
+        }
+        resetSttGap()
+        open = true
+        EarState.inConversation.value = true
+        val rest = speechAfterGrok(raw)
+        if (rest.isNullOrBlank()) sayHello() else ask(rest)
+    }
+
+    /** Words after hola grok. Empty when the person only said the greeting. */
+    private fun speechAfterGrok(raw: String): String? {
+        val foldedParts = Inbox.fold(raw).split(" ").filter { it.isNotBlank() }
+        val original = raw.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        val at = foldedParts.indexOfFirst { it == "grok" || it == "grock" }
+        if (at < 0) return null
+        val after = if (original.size == foldedParts.size) {
+            original.drop(at + 1)
+        } else {
+            foldedParts.drop(at + 1)
+        }
+        return after.joinToString(" ")
+            .trim()
+            .trimStart(':', ',', ';', '-', ' ')
+            .trim()
+            .ifBlank { null }
     }
 
     private fun heardWake() {
@@ -667,6 +741,7 @@ class ListenService : Service() {
             Trace.event("stt chars=${text.length} words=$heardWords")
             when {
                 messageEar -> onMessagePhrase(text)
+                spotEar -> onSpotPhrase(text)
                 followEar && !open -> onCommandPhrase(text)
                 else -> onPhrase(text)
             }
@@ -675,6 +750,22 @@ class ListenService : Service() {
             Log.i(TAG, "stt error $error")
             Trace.event("stt error $error")
             if (!alive.get() || mode != HEAR) return
+            if (spotEar) {
+                spotEar = false
+                if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                    lose()
+                    return
+                }
+                if (error == SpeechRecognizer.ERROR_CLIENT || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
+                    try {
+                        recognizer?.destroy()
+                    } catch (_: Exception) {
+                    }
+                    recognizer = null
+                }
+                wake()
+                return
+            }
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 lose()
                 return
