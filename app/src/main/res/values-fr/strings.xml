@@ -15,6 +15,7 @@
     <string name="in_conversation">En conversation</string>
     <string name="hello">Bonjour</string>
     <string name="status_thinking">Réflexion</string>
+    <string name="still_thinking">Je réfléchis encore.</string>
     <string name="status_model_failed">Le modèle de phrase n\'a pas pu être préparé</string>
     <string name="status_idle">Appuyez sur le bouton. Dites « Grok, » et ce que vous voulez dire.</string>
     <string name="status_need_mic">L\'autorisation du micro est nécessaire.</string>

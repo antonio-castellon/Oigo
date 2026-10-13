@@ -83,48 +83,79 @@ class GrokClient(context: Context) {
             body.put("tools", tools)
             body.put("tool_choice", "required")
         }
-        val connection = URL("https://api.x.ai/v1/responses").openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.connectTimeout = 20000
-        connection.readTimeout = 90000
-        connection.doOutput = true
-        connection.setRequestProperty("Authorization", "Bearer $key")
-        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
         val payload = body.toString().toByteArray(Charsets.UTF_8)
         return try {
-            connection.outputStream.use { it.write(payload) }
-            val code = connection.responseCode
-            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val raw = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-            if (code == 401 || code == 402 || code == 429) {
-                Trace.event("api $code fuel")
-                return Answer.Fuel
+            var result: Answer = Answer.Failed
+            for (attempt in 1..2) {
+                val (code, raw) = post(key, payload)
+                if (code == 429 && attempt == 1) {
+                    Trace.event("api 429 retry")
+                    Thread.sleep(1_000)
+                    continue
+                }
+                if (code == 401) {
+                    Trace.event("api 401 key")
+                    result = Answer.NeedKey
+                    break
+                }
+                if (code == 402) {
+                    Trace.event("api 402 fuel")
+                    result = Answer.Fuel
+                    break
+                }
+                if (code == 429) {
+                    Trace.event("api 429 failed")
+                    result = Answer.Failed
+                    break
+                }
+                if (code !in 200..299) {
+                    Log.i(TAG, "api $code ${raw.take(180).replace(Regex("\\s+"), " ")}")
+                    Trace.event("api $code failed")
+                    result = Answer.Failed
+                    break
+                }
+                val root = JSONObject(raw)
+                val content = spokenText(root)
+                Log.i(
+                    TAG,
+                    "api $code ${root.optString("status")} model=$model search=$lookup turns=${prior.size} bits=$bitCount digest=${earlier.length} chars=${content.length}",
+                )
+                Trace.event("api $code model=$model search=$lookup turns=${prior.size} chars=${content.length}")
+                if (content.isBlank()) {
+                    Log.i(TAG, "api empty search=$lookup")
+                    Trace.event("api empty search=$lookup")
+                    result = Answer.Failed
+                    break
+                }
+                synchronized(lock) {
+                    if (gen == generation) remember(text, content, System.currentTimeMillis())
+                }
+                result = Answer.Text(strip(content))
+                break
             }
-            if (code !in 200..299) {
-                Log.i(TAG, "api $code ${raw.take(180).replace(Regex("\\s+"), " ")}")
-                Trace.event("api $code failed")
-                return Answer.Failed
-            }
-            val root = JSONObject(raw)
-            val content = spokenText(root)
-            Log.i(
-                TAG,
-                "api $code ${root.optString("status")} model=$model search=$lookup turns=${prior.size} bits=$bitCount digest=${earlier.length} chars=${content.length}",
-            )
-            Trace.event("api $code model=$model search=$lookup turns=${prior.size} chars=${content.length}")
-            if (content.isBlank()) {
-                Log.i(TAG, "api empty search=$lookup")
-                Trace.event("api empty search=$lookup")
-                return Answer.Failed
-            }
-            synchronized(lock) {
-                if (gen == generation) remember(text, content, System.currentTimeMillis())
-            }
-            Answer.Text(strip(content))
+            result
         } catch (error: Exception) {
             Log.e(TAG, "api failed", error)
             Trace.event("api failed ${error.javaClass.simpleName}")
             Answer.Failed
+        }
+    }
+
+    /** One POST. A 429 is retried by the caller with a fresh connection. */
+    private fun post(key: String, payload: ByteArray): Pair<Int, String> {
+        val connection = URL("https://api.x.ai/v1/responses").openConnection() as HttpURLConnection
+        return try {
+            connection.requestMethod = "POST"
+            connection.connectTimeout = 20000
+            connection.readTimeout = 35000
+            connection.doOutput = true
+            connection.setRequestProperty("Authorization", "Bearer $key")
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            connection.outputStream.use { it.write(payload) }
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val raw = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            code to raw
         } finally {
             connection.disconnect()
         }

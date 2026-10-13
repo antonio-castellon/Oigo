@@ -96,24 +96,6 @@ object Commands {
     /** True once, after this turn really handed a call to the phone. */
     fun takeCallPlaced(): Boolean = callPlaced.getAndSet(false)
 
-    /**
-     * The catch ear often hears only the name, because "llamar a" was said
-     * before speech recognition opened. Dial when that name is one contact.
-     * Null when it is not a name, or nobody in the address book matches.
-     */
-    fun dialKnown(context: Context, store: Store, name: String): String? {
-        var folded = Inbox.fold(name).trim()
-        if (folded.startsWith("a ")) folded = folded.removePrefix("a ").trim()
-        val words = folded.split(" ").filter { it.isNotBlank() }
-        if (words.size !in 1..8) return null
-        val small = setOf("de", "la", "las", "los", "del", "y", "e", "da", "do", "di", "van", "von")
-        if (words.any { word -> word.any { !it.isLetter() } || (word.length < 2 && word !in small) }) return null
-        if (!store.calls) return null
-        val spoken = call(context, store, folded)
-        if (spoken == context.getString(R.string.call_missing, folded)) return null
-        return spoken
-    }
-
     private fun read(context: Context, store: Store, count: Int, who: String): String {
         if (!store.whatsapp && !store.telegram) return context.getString(R.string.option_off)
         val found = Inbox.last(who, count)

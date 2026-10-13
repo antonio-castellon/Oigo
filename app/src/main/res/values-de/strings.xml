@@ -15,6 +15,7 @@
     <string name="in_conversation">Im Gespräch</string>
     <string name="hello">Hallo</string>
     <string name="status_thinking">Denkt nach</string>
+    <string name="still_thinking">Ich denke noch nach.</string>
     <string name="status_model_failed">Das Sprachmodell konnte nicht vorbereitet werden</string>
     <string name="status_idle">Drücke den Knopf. Sag „Grok,“ und was du sagen willst.</string>
     <string name="status_need_mic">Die Mikrofonerlaubnis fehlt.</string>

@@ -78,17 +78,11 @@ class ListenService : Service() {
         }
         wake()
     }
-    /** Speech during the key-phrase ear. The phoneme model misses a spoken order, so this catches it. */
-    private val catchTimeout = Runnable {
-        if (!alive.get() || !catchEar) return@Runnable
-        Log.i(TAG, "catch timeout")
-        Trace.event("catch timeout")
-        catchEar = false
-        try {
-            recognizer?.cancel()
-        } catch (_: Exception) {
-        }
-        wake()
+    /** Spoken once if the cloud answer is still out after a few seconds. */
+    private val stillThinking = Runnable {
+        if (!alive.get()) return@Runnable
+        VoiceLevel.apply(this, Store(this).voiceVolume)
+        speaker?.say(phrase(R.string.still_thinking)) { }
     }
     @Volatile private var open = false
     private var handed = false
@@ -105,9 +99,8 @@ class ListenService : Service() {
     /** Closed chat, just after a message was read. Local orders work here. Not a conversation. */
     @Volatile private var followEar = false
     private var followUntil = 0L
-    /** A short listen grabbed because someone spoke while the key-phrase ear was on. */
-    @Volatile private var catchEar = false
-    private var catchReadyAt = 0L
+    /** Next speech-recognizer restart. Grows after each miss, resets after a real result. */
+    private var sttGap = 800L
     private var chime: android.media.ToneGenerator? = null
     private val quiet = Runnable {
         open = false
@@ -173,12 +166,11 @@ class ListenService : Service() {
         alive.set(false)
         messageEar = false
         followEar = false
-        catchEar = false
         main.removeCallbacks(quiet)
         main.removeCallbacks(again)
         main.removeCallbacks(answerTimeout)
         main.removeCallbacks(followTimeout)
-        main.removeCallbacks(catchTimeout)
+        main.removeCallbacks(stillThinking)
         main.removeCallbacks(chimeRunnable)
         main.removeCallbacks(afterAskRunnable)
         releaseChime()
@@ -293,10 +285,10 @@ class ListenService : Service() {
         if (!alive.get()) return
         messageEar = false
         followEar = false
-        catchEar = false
+        resetSttGap()
         main.removeCallbacks(answerTimeout)
         main.removeCallbacks(followTimeout)
-        main.removeCallbacks(catchTimeout)
+        main.removeCallbacks(stillThinking)
         main.removeCallbacks(chimeRunnable)
         main.removeCallbacks(afterAskRunnable)
         releaseChime()
@@ -345,20 +337,24 @@ class ListenService : Service() {
         var energy = 0.0
         while (earOn && alive.get() && !Thread.currentThread().isInterrupted) {
             if (mode != WAKE) {
-                try {
-                    Thread.sleep(40)
-                } catch (_: InterruptedException) {
-                    break
-                }
+                if (!nap()) break
                 continue
             }
-            val mic = record ?: continue
+            val mic = record
+            if (mic == null) {
+                if (!nap()) break
+                continue
+            }
             val n = try {
                 mic.read(buffer, 0, buffer.size)
             } catch (_: Exception) {
+                if (!nap()) break
                 continue
             }
-            if (n <= 0) continue
+            if (n <= 0) {
+                if (!nap()) break
+                continue
+            }
             var sum = 0.0
             for (i in 0 until n) {
                 val sample = buffer[i] / 32768.0
@@ -367,9 +363,12 @@ class ListenService : Service() {
             }
             energy += sum
             samples += n
-            val heard = stream ?: continue
-            val engine = spotter ?: continue
-            if (heard.ptr == 0L) continue
+            val heard = stream
+            val engine = spotter
+            if (heard == null || engine == null || heard.ptr == 0L) {
+                if (!nap()) break
+                continue
+            }
             heard.acceptWaveform(floats.copyOf(n), 16000)
             while (earOn && engine.isReady(heard)) engine.decode(heard)
             val keyword = engine.getResult(heard).keyword
@@ -400,6 +399,14 @@ class ListenService : Service() {
         }
     }
 
+    /** Keeps a failed ear from spinning the CPU. False when the thread was interrupted. */
+    private fun nap(): Boolean = try {
+        Thread.sleep(40)
+        true
+    } catch (_: InterruptedException) {
+        false
+    }
+
     /**
      * Yes or no for a waiting message. The phrase is heard by the same ear that
      * waits for hola grok. It does not open a conversation.
@@ -423,6 +430,7 @@ class ListenService : Service() {
 
     private fun heardWake() {
         if (!alive.get() || mode != WAKE) return
+        resetSttGap()
         open = true
         EarState.inConversation.value = true
         closeMic()
@@ -461,6 +469,7 @@ class ListenService : Service() {
             if (open) hear() else wake()
             return
         }
+        resetSttGap()
         messageEar = true
         messageEarUntil = android.os.SystemClock.elapsedRealtime() + 22_000L
         main.removeCallbacks(answerTimeout)
@@ -544,8 +553,19 @@ class ListenService : Service() {
             Trace.event("stt start failed ${error.javaClass.simpleName}")
             VoiceLevel.apply(this, Store(this).voiceVolume)
             main.removeCallbacks(again)
-            main.postDelayed(again, 800)
+            main.postDelayed(again, sttRetryDelay())
         }
+    }
+
+    /** 800 ms, then 1.5 s, then 3 s. A heard phrase or a fresh wake starts again at 800. */
+    private fun sttRetryDelay(): Long {
+        val wait = sttGap
+        sttGap = if (sttGap < 1_500L) 1_500L else 3_000L
+        return wait
+    }
+
+    private fun resetSttGap() {
+        sttGap = 800L
     }
 
     private val listener = object : RecognitionListener {
@@ -558,6 +578,7 @@ class ListenService : Service() {
         override fun onEvent(eventType: Int, params: android.os.Bundle?) = Unit
         override fun onResults(results: android.os.Bundle?) {
             if (mode != HEAR) return
+            resetSttGap()
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
             Log.i(TAG, "stt '${text.take(80)}'")
             val heardWords = Inbox.fold(text).split(" ").count { it.isNotBlank() }
@@ -565,7 +586,6 @@ class ListenService : Service() {
             when {
                 messageEar -> onMessagePhrase(text)
                 followEar && !open -> onCommandPhrase(text)
-                catchEar && !open -> onCatchPhrase(text)
                 else -> onPhrase(text)
             }
         }
@@ -573,13 +593,6 @@ class ListenService : Service() {
             Log.i(TAG, "stt error $error")
             Trace.event("stt error $error")
             if (!alive.get() || mode != HEAR) return
-            if (catchEar && android.os.SystemClock.elapsedRealtime() < catchReadyAt) return
-            if (catchEar) {
-                catchEar = false
-                main.removeCallbacks(catchTimeout)
-                wake()
-                return
-            }
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 lose()
                 return
@@ -592,7 +605,7 @@ class ListenService : Service() {
                 recognizer = null
             }
             main.removeCallbacks(again)
-            main.postDelayed(again, 800)
+            main.postDelayed(again, sttRetryDelay())
         }
     }
 
@@ -641,6 +654,7 @@ class ListenService : Service() {
     /** Three minutes after the message. A call does not need hola grok and does not open the chat. */
     private fun hearFollow() {
         if (!alive.get()) return
+        resetSttGap()
         followEar = true
         followUntil = android.os.SystemClock.elapsedRealtime() + 180_000L
         main.removeCallbacks(followTimeout)
@@ -683,83 +697,6 @@ class ListenService : Service() {
         main.removeCallbacks(followTimeout)
         mode = TALK
         ask(text)
-    }
-
-    /**
-     * Someone spoke over the key-phrase ear. That ear does not understand
-     * "llamar", so speech recognition takes the rest of the phrase.
-     */
-    private fun catchSpeech() {
-        if (!alive.get() || mode != WAKE || messageEar || followEar || open) return
-        catchEar = true
-        catchReadyAt = android.os.SystemClock.elapsedRealtime() + 500
-        main.removeCallbacks(catchTimeout)
-        main.postDelayed(catchTimeout, 8_000L)
-        Log.i(TAG, "catch ear")
-        Trace.event("catch ear")
-        EarState.inConversation.value = false
-        startStt(phrase(R.string.status_your_turn))
-    }
-
-    private fun onCatchPhrase(raw: String) {
-        if (!alive.get() || !catchEar) return
-        catchEar = false
-        main.removeCallbacks(catchTimeout)
-        val foldedAll = Inbox.fold(raw)
-        if (foldedAll == "hola grok" || foldedAll == "hey grok" ||
-            foldedAll.startsWith("hola grok ") || foldedAll.startsWith("hey grok ")
-        ) {
-            mode = WAKE
-            heardWake()
-            return
-        }
-        val question = questionForGrok(raw)
-        val text = (if (question.isNullOrBlank()) raw else question).trim()
-        if (Inbox.pending != null) {
-            val choice = Inbox.fold(text)
-            if (agrees(choice) || declines(choice)) {
-                mode = TALK
-                val spoken = spokenMessage(agrees(choice))
-                if (spoken.isNullOrBlank()) {
-                    wake()
-                    return
-                }
-                EarState.inConversation.value = false
-                EarState.reply.value = spoken
-                VoiceLevel.apply(this, Store(this).voiceVolume)
-                val voice = speaker
-                if (voice == null) hearFollow() else voice.say(spoken) { hearFollow() }
-                return
-            }
-        }
-        if (text.isNotBlank() && (!question.isNullOrBlank() || Commands.handles(text))) {
-            Log.i(TAG, "catch ${Inbox.fold(text).substringBefore(' ')}")
-            Trace.word("catch", Inbox.fold(text))
-            mode = TALK
-            ask(text)
-            return
-        }
-        // The order starts while the key-phrase ear is still up, so often only the name remains.
-        val heardName = text
-        work.execute {
-            val spoken = Commands.dialKnown(localized(), Store(this), heardName)
-            main.post {
-                if (!alive.get()) return@post
-                if (spoken.isNullOrBlank()) {
-                    Log.i(TAG, "catch skip ${Inbox.fold(heardName).trim().substringBefore(' ')}")
-                    Trace.word("catch skip", Inbox.fold(heardName))
-                    wake()
-                    return@post
-                }
-                Log.i(TAG, "catch name")
-                Trace.event("catch name")
-                mode = TALK
-                EarState.reply.value = spoken
-                VoiceLevel.apply(this, Store(this).voiceVolume)
-                val voice = speaker
-                if (voice == null) finishCallLine { wake() } else voice.say(spoken) { finishCallLine { wake() } }
-            }
-        }
     }
 
     private fun ask(text: String) {
@@ -825,7 +762,14 @@ class ListenService : Service() {
         Commands.local(ui, store, useful)?.let { return it }
         if (!open) open = true
         EarState.status.value = ui.getString(R.string.status_thinking)
-        return when (val answer = grok.ask(store, useful, languageName(store), Memory.block(this))) {
+        main.removeCallbacks(stillThinking)
+        main.postDelayed(stillThinking, 5_000L)
+        val answer = try {
+            grok.ask(store, useful, languageName(store), Memory.block(this))
+        } finally {
+            main.removeCallbacks(stillThinking)
+        }
+        return when (answer) {
             is GrokClient.Answer.Text -> Commands.fromCloud(ui, store, answer.value) ?: answer.value
             GrokClient.Answer.NeedKey -> ui.getString(R.string.need_key)
             GrokClient.Answer.Fuel -> ui.getString(R.string.fuel)
@@ -1013,7 +957,7 @@ class ListenService : Service() {
             "dimentica", "dimentica la conversazione",
         )
         private val GOODBYE = setOf(
-            "gracias", "vale", "adios", "hasta luego", "bye", "goodbye",
+            "gracias", "adios", "hasta luego", "bye", "goodbye",
             "au revoir", "tschuss", "ciao", "nada gracias", "ok gracias", "de rien", "danke",
         )
 
