@@ -74,8 +74,9 @@ class MainActivity : LocalizedActivity() {
 
     override fun onResume() {
         super.onResume()
-        hasKey = Store(this).apiKey.isNotBlank()
-        called = Store(this).displayName()
+        val store = Store(this)
+        hasKey = store.bearer().isNotBlank()
+        called = store.displayName()
         EarState.debug.value = Store(this).debug
         if (!hasKey && EarState.listening.value) ListenService.stop(this)
     }
