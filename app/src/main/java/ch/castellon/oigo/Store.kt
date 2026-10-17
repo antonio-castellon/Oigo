@@ -8,7 +8,7 @@ import androidx.security.crypto.MasterKeys
 import java.util.Locale
 import java.util.UUID
 
-/** Local choices. The API key stays in the keystore when the device allows it. */
+/** Local choices. API key and OAuth tokens stay in the keystore when the device allows it. */
 class Store(context: Context) {
     private val app = context.applicationContext
     private val plain: SharedPreferences =
@@ -82,6 +82,11 @@ class Store(context: Context) {
         get() = plain.getString(MODEL, "grok-4.3") ?: "grok-4.3"
         set(value) = plain.edit().putString(MODEL, value.ifBlank { "grok-4.3" }).apply()
 
+    /** "api_key" or "oauth". */
+    var authMode: String
+        get() = plain.getString(AUTH_MODE, AUTH_API) ?: AUTH_API
+        set(value) = plain.edit().putString(AUTH_MODE, if (value == AUTH_OAUTH) AUTH_OAUTH else AUTH_API).apply()
+
     /** Stable id for a trace. It is not a phone number and not an account. */
     fun installId(): String {
         val saved = plain.getString(INSTALL, "").orEmpty()
@@ -94,6 +99,38 @@ class Store(context: Context) {
     var apiKey: String
         get() = secret.getString(KEY, "") ?: ""
         set(value) = secret.edit().putString(KEY, value.trim()).apply()
+
+    var oauthAccess: String
+        get() = secret.getString(OAUTH_ACCESS, "") ?: ""
+        set(value) = secret.edit().putString(OAUTH_ACCESS, value).apply()
+
+    var oauthRefresh: String
+        get() = secret.getString(OAUTH_REFRESH, "") ?: ""
+        set(value) = secret.edit().putString(OAUTH_REFRESH, value).apply()
+
+    var oauthExpiresAt: Long
+        get() = secret.getLong(OAUTH_EXPIRES, 0L)
+        set(value) = secret.edit().putLong(OAUTH_EXPIRES, value).apply()
+
+    /** Returns a usable bearer token, refreshing OAuth if needed. Empty if none. */
+    fun bearer(): String {
+        if (authMode == AUTH_OAUTH) {
+            val access = oauthAccess
+            if (access.isBlank()) return ""
+            if (System.currentTimeMillis() < oauthExpiresAt - 60_000) return access
+            val refresh = oauthRefresh
+            if (refresh.isBlank()) return access
+            val fresh = XaiOAuth.refresh(refresh)
+            if (fresh != null) {
+                oauthAccess = fresh.accessToken
+                oauthRefresh = fresh.refreshToken
+                oauthExpiresAt = System.currentTimeMillis() + fresh.expiresIn * 1000L
+                return fresh.accessToken
+            }
+            return access
+        }
+        return apiKey
+    }
 
     var alertIndex: Int
         get() = plain.getInt(ALERT_INDEX, 0)
@@ -139,6 +176,8 @@ class Store(context: Context) {
     companion object {
         const val WAKE_HOLA = "hola"
         const val WAKE_HEY = "hey"
+        const val AUTH_API = "api_key"
+        const val AUTH_OAUTH = "oauth"
 
         private const val ARMED = "armed"
         private const val WAKE = "wake"
@@ -154,7 +193,11 @@ class Store(context: Context) {
         private const val WHATSAPP = "whatsapp"
         private const val TELEGRAM = "telegram"
         private const val MODEL = "model"
+        private const val AUTH_MODE = "auth_mode"
         private const val KEY = "api_key"
+        private const val OAUTH_ACCESS = "oauth_access"
+        private const val OAUTH_REFRESH = "oauth_refresh"
+        private const val OAUTH_EXPIRES = "oauth_expires"
         private const val ALERT_INDEX = "alert_index"
         private const val INSTALL = "install_id"
 
