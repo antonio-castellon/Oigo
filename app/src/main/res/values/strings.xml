@@ -35,6 +35,12 @@
     <string name="bye">See you.</string>
     <string name="need_key">The API key is missing. Open settings and paste the key from the xAI console.</string>
     <string name="need_key_banner">Enter the API key in settings.</string>
+    <string name="need_sso_banner">Sign in with SuperGrok to start listening.</string>
+    <string name="sso_sign_in">Sign in with SuperGrok</string>
+    <string name="sso_status_waiting">Waiting for you to authorize…</string>
+    <string name="sso_status_ok">Signed in</string>
+    <string name="sso_status_fail">Sign-in failed or timed out</string>
+    <string name="sso_code_prompt">Go to %1$s and enter code: %2$s</string>
     <string name="fuel">I need more fuel.</string>
     <string name="grok_failed">I could not reach Grok.</string>
     <string name="option_off">That option is off. Turn it on in settings if you want it.</string>
