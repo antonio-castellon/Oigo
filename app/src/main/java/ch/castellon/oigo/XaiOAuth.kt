@@ -35,25 +35,27 @@ object XaiOAuth {
         val expiresIn: Int,
     )
 
-    fun requestDeviceCode(): DeviceCode? = try {
-        val body = "client_id=${enc(CLIENT_ID)}&scope=${enc(SCOPE)}"
-        val (code, raw) = post(DEVICE_CODE_URL, body)
-        if (code !in 200..299) {
-            Log.w(TAG, "device code $code ${raw.take(200)}")
+    fun requestDeviceCode(): DeviceCode? {
+        try {
+            val body = "client_id=${enc(CLIENT_ID)}&scope=${enc(SCOPE)}"
+            val (code, raw) = post(DEVICE_CODE_URL, body)
+            if (code !in 200..299) {
+                Log.w(TAG, "device code $code ${raw.take(200)}")
+                return null
+            }
+            val json = JSONObject(raw)
+            return DeviceCode(
+                deviceCode = json.getString("device_code"),
+                userCode = json.getString("user_code"),
+                verificationUri = json.getString("verification_uri"),
+                verificationUriComplete = json.optString("verification_uri_complete").takeIf { it.isNotBlank() },
+                expiresIn = json.optInt("expires_in", 1800),
+                interval = json.optInt("interval", 5),
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "device code failed", e)
             return null
         }
-        val json = JSONObject(raw)
-        DeviceCode(
-            deviceCode = json.getString("device_code"),
-            userCode = json.getString("user_code"),
-            verificationUri = json.getString("verification_uri"),
-            verificationUriComplete = json.optString("verification_uri_complete").takeIf { it.isNotBlank() },
-            expiresIn = json.optInt("expires_in", 1800),
-            interval = json.optInt("interval", 5),
-        )
-    } catch (e: Exception) {
-        Log.e(TAG, "device code failed", e)
-        null
     }
 
     fun pollForTokens(deviceCode: String, intervalSec: Int, timeoutSec: Int): Tokens? {
@@ -84,22 +86,24 @@ object XaiOAuth {
         return null
     }
 
-    fun refresh(refreshToken: String): Tokens? = try {
-        val body = "grant_type=refresh_token&refresh_token=${enc(refreshToken)}&client_id=${enc(CLIENT_ID)}"
-        val (code, raw) = post(TOKEN_URL, body)
-        if (code !in 200..299) {
-            Log.w(TAG, "refresh $code ${raw.take(200)}")
+    fun refresh(refreshToken: String): Tokens? {
+        try {
+            val body = "grant_type=refresh_token&refresh_token=${enc(refreshToken)}&client_id=${enc(CLIENT_ID)}"
+            val (code, raw) = post(TOKEN_URL, body)
+            if (code !in 200..299) {
+                Log.w(TAG, "refresh $code ${raw.take(200)}")
+                return null
+            }
+            val json = JSONObject(raw)
+            return Tokens(
+                accessToken = json.getString("access_token"),
+                refreshToken = json.optString("refresh_token").ifBlank { refreshToken },
+                expiresIn = json.optInt("expires_in", 3600),
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "refresh failed", e)
             return null
         }
-        val json = JSONObject(raw)
-        Tokens(
-            accessToken = json.getString("access_token"),
-            refreshToken = json.optString("refresh_token").ifBlank { refreshToken },
-            expiresIn = json.optInt("expires_in", 3600),
-        )
-    } catch (e: Exception) {
-        Log.e(TAG, "refresh failed", e)
-        null
     }
 
     private fun post(url: String, form: String): Pair<Int, String> {
