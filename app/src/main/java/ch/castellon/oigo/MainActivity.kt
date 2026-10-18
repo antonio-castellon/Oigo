@@ -3,6 +3,7 @@ package ch.castellon.oigo
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -56,6 +57,8 @@ open class LocalizedActivity : ComponentActivity() {
 class MainActivity : LocalizedActivity() {
     private var hasKey by mutableStateOf(false)
     private var called by mutableStateOf("Grok")
+    private var authMode by mutableStateOf(Store.AUTH_API)
+    private var ssoStatus by mutableStateOf("")
 
     private val askMic = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (!hasKey) return@registerForActivityResult
@@ -69,13 +72,15 @@ class MainActivity : LocalizedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { GrokTheme { Home(hasKey, called, ::listen, ::openSettings) } }
+        setContent { GrokTheme { Home(hasKey, called, authMode, ssoStatus, ::listen, ::openSettings, ::startSso) } }
     }
 
     override fun onResume() {
         super.onResume()
-        hasKey = Store(this).apiKey.isNotBlank()
-        called = Store(this).displayName()
+        val store = Store(this)
+        hasKey = store.bearer().isNotBlank()
+        called = store.displayName()
+        authMode = store.authMode
         EarState.debug.value = Store(this).debug
         if (!hasKey && EarState.listening.value) ListenService.stop(this)
     }
@@ -103,10 +108,49 @@ class MainActivity : LocalizedActivity() {
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
+
+    private fun startSso() {
+        if (authMode != Store.AUTH_OAUTH) return
+        ssoStatus = getString(R.string.sso_status_waiting)
+        Thread {
+            val dc = XaiOAuth.requestDeviceCode()
+            if (dc == null) {
+                runOnUiThread { ssoStatus = getString(R.string.sso_status_fail) }
+                return@Thread
+            }
+            runOnUiThread {
+                ssoStatus = getString(R.string.sso_code_prompt, dc.verificationUri, dc.userCode)
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dc.verificationUriComplete ?: dc.verificationUri)))
+                } catch (_: Exception) {}
+            }
+            val tokens = XaiOAuth.pollForTokens(dc.deviceCode, dc.interval, dc.expiresIn)
+            runOnUiThread {
+                if (tokens != null) {
+                    val store = Store(this)
+                    store.oauthAccess = tokens.accessToken
+                    store.oauthRefresh = tokens.refreshToken
+                    store.oauthExpiresAt = System.currentTimeMillis() + tokens.expiresIn * 1000L
+                    ssoStatus = getString(R.string.sso_status_ok)
+                    hasKey = true
+                } else {
+                    ssoStatus = getString(R.string.sso_status_fail)
+                }
+            }
+        }.start()
+    }
 }
 
 @Composable
-private fun Home(hasKey: Boolean, called: String, onListen: () -> Unit, onSettings: () -> Unit) {
+private fun Home(
+    hasKey: Boolean,
+    called: String,
+    authMode: String,
+    ssoStatus: String,
+    onListen: () -> Unit,
+    onSettings: () -> Unit,
+    onStartSso: () -> Unit,
+) {
     val listening by EarState.listening.collectAsState()
     val status by EarState.status.collectAsState()
     val inConversation by EarState.inConversation.collectAsState()
@@ -145,13 +189,33 @@ private fun Home(hasKey: Boolean, called: String, onListen: () -> Unit, onSettin
         ) {
             if (!hasKey) {
                 Text(
-                    text = stringResource(R.string.need_key_banner),
+                    text = stringResource(
+                        if (authMode == Store.AUTH_OAUTH) R.string.need_sso_banner
+                        else R.string.need_key_banner
+                    ),
                     color = ink,
                     fontSize = 22.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 28.sp,
-                    modifier = Modifier.padding(start = 32.dp, end = 32.dp, bottom = 24.dp),
+                    modifier = Modifier.padding(start = 32.dp, end = 32.dp, bottom = 12.dp),
                 )
+                if (authMode == Store.AUTH_OAUTH) {
+                    Button(
+                        onClick = onStartSso,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    ) {
+                        Text(stringResource(R.string.sso_sign_in))
+                    }
+                    if (ssoStatus.isNotBlank()) {
+                        Text(
+                            text = ssoStatus,
+                            color = ink,
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
+                        )
+                    }
+                }
             }
             Button(
                 onClick = onListen,

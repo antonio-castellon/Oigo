@@ -32,7 +32,7 @@ class GrokClient(context: Context) {
     }
 
     fun ask(store: Store, text: String, languageName: String, kept: String = ""): Answer {
-        val key = store.apiKey
+        val key = store.bearer()
         if (key.isBlank()) return Answer.NeedKey
         if (store.model == "grok-4.7") store.model = "grok-4.3"
         val model = store.model.ifBlank { "grok-4.3" }

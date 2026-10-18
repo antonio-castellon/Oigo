@@ -155,19 +155,76 @@ class SettingsActivity : LocalizedActivity() {
                 if (!it) EarState.lines.value = emptyList()
             }
             Text(stringResource(R.string.debug_help), color = ink, fontSize = 15.sp)
-            var key by mutableStateOf(store.apiKey)
-            OutlinedTextField(
-                value = key,
-                onValueChange = {
-                    key = it
-                    store.apiKey = it
-                },
+            var authMode by remember { mutableStateOf(store.authMode) }
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.api_key)) },
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true,
-            )
-            Text(stringResource(R.string.api_key_help), color = ink, fontSize = 15.sp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = authMode == Store.AUTH_API,
+                    onClick = {
+                        authMode = Store.AUTH_API
+                        store.authMode = Store.AUTH_API
+                    },
+                    label = { Text("API key") },
+                )
+                FilterChip(
+                    selected = authMode == Store.AUTH_OAUTH,
+                    onClick = {
+                        authMode = Store.AUTH_OAUTH
+                        store.authMode = Store.AUTH_OAUTH
+                    },
+                    label = { Text("SuperGrok SSO") },
+                )
+            }
+            if (authMode == Store.AUTH_API) {
+                var key by remember { mutableStateOf(store.apiKey) }
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = {
+                        key = it
+                        store.apiKey = it
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.api_key)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                )
+                Text(stringResource(R.string.api_key_help), color = ink, fontSize = 15.sp)
+            } else {
+                var oauthStatus by remember { mutableStateOf(if (store.oauthAccess.isNotBlank()) "Signed in" else "Not signed in") }
+                Text("SuperGrok SSO (device code, local tokens)", color = ink, fontSize = 15.sp)
+                Text(oauthStatus, color = ink, fontSize = 14.sp)
+                Button(onClick = {
+                    oauthStatus = "Requesting code..."
+                    Thread {
+                        val dc = XaiOAuth.requestDeviceCode()
+                        if (dc == null) {
+                            runOnUiThread { oauthStatus = "Failed to get device code" }
+                            return@Thread
+                        }
+                        runOnUiThread {
+                            oauthStatus = "Go to ${dc.verificationUri}\nCode: ${dc.userCode}"
+                            try {
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dc.verificationUriComplete ?: dc.verificationUri)))
+                            } catch (_: Exception) {}
+                        }
+                        val tokens = XaiOAuth.pollForTokens(dc.deviceCode, dc.interval, dc.expiresIn)
+                        runOnUiThread {
+                            if (tokens != null) {
+                                store.oauthAccess = tokens.accessToken
+                                store.oauthRefresh = tokens.refreshToken
+                                store.oauthExpiresAt = System.currentTimeMillis() + tokens.expiresIn * 1000L
+                                oauthStatus = "Signed in"
+                            } else {
+                                oauthStatus = "Sign-in timed out or failed"
+                            }
+                        }
+                    }.start()
+                }) {
+                    Text(if (store.oauthAccess.isNotBlank()) "Re-sign in" else "Sign in with SuperGrok")
+                }
+            }
             var model by mutableStateOf(store.model)
             OutlinedTextField(
                 value = model,

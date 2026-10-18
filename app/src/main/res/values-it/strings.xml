@@ -35,6 +35,12 @@
     <string name="bye">A dopo.</string>
     <string name="need_key">Manca la chiave API. Apri le impostazioni e incolla la chiave della console xAI.</string>
     <string name="need_key_banner">Inserisci la chiave API nelle impostazioni.</string>
+    <string name="need_sso_banner">Accedi con SuperGrok per poter ascoltare.</string>
+    <string name="sso_sign_in">Accedi con SuperGrok</string>
+    <string name="sso_status_waiting">In attesa della tua autorizzazione…</string>
+    <string name="sso_status_ok">Accesso effettuato</string>
+    <string name="sso_status_fail">Accesso fallito o tempo scaduto</string>
+    <string name="sso_code_prompt">Vai su %1$s e inserisci il codice: %2$s</string>
     <string name="fuel">Mi serve altra benzina.</string>
     <string name="grok_failed">Non sono riuscito a raggiungere Grok.</string>
     <string name="option_off">Quell\'opzione è spenta. Attivala nelle impostazioni se la vuoi.</string>

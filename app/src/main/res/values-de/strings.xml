@@ -35,6 +35,12 @@
     <string name="bye">Bis dann.</string>
     <string name="need_key">Der API-Schlüssel fehlt. Öffne die Einstellungen und füge den Schlüssel aus der xAI-Konsole ein.</string>
     <string name="need_key_banner">Gib den API-Schlüssel in den Einstellungen ein.</string>
+    <string name="need_sso_banner">Melde dich mit SuperGrok an, um zuhören zu können.</string>
+    <string name="sso_sign_in">Mit SuperGrok anmelden</string>
+    <string name="sso_status_waiting">Warte auf deine Autorisierung…</string>
+    <string name="sso_status_ok">Angemeldet</string>
+    <string name="sso_status_fail">Anmeldung fehlgeschlagen oder Zeitüberschreitung</string>
+    <string name="sso_code_prompt">Gehe zu %1$s und gib den Code ein: %2$s</string>
     <string name="fuel">Ich brauche mehr Treibstoff.</string>
     <string name="grok_failed">Grok war nicht erreichbar.</string>
     <string name="option_off">Diese Option ist aus. Schalte sie in den Einstellungen ein, wenn du sie willst.</string>
