@@ -58,7 +58,10 @@ class Speaker(context: Context, private val locale: Locale) {
             return
         }
         val mine = ++turn
+        val pieces = piecesOf(line)
+        var spokenLast = pieces.lastIndex
         var finished = false
+        var started = false
         fun finish() {
             if (finished || turn != mine) return
             finished = true
@@ -66,21 +69,27 @@ class Speaker(context: Context, private val locale: Locale) {
             pendingDone = null
             if (Looper.myLooper() == Looper.getMainLooper()) done() else main.post(done)
         }
-        val timeout = Runnable {
-            Log.i(TAG, "tts timeout")
-            Trace.event("tts timeout")
-            engine?.stop()
-            finish()
+        // Only if the engine never begins. Once it starts, onDone of the last piece is the end.
+        val startGuard = Runnable {
+            if (!started && turn == mine) {
+                Log.i(TAG, "tts never started")
+                Trace.event("tts never started")
+                finish()
+            }
         }
-        pendingDone = timeout
+        pendingDone = startGuard
         engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
+                if (!utteranceId.orEmpty().startsWith("grok-$mine")) return
+                started = true
+                pendingDone?.let { main.removeCallbacks(it) }
+                pendingDone = null
                 Log.i(TAG, "tts start")
                 Trace.event("tts start")
             }
 
             override fun onDone(utteranceId: String?) {
-                main.post { finish() }
+                if (utteranceId == "grok-$mine-$spokenLast") main.post { finish() }
             }
 
             @Deprecated("Use the error code overload")
@@ -94,15 +103,50 @@ class Speaker(context: Context, private val locale: Locale) {
                 main.post { finish() }
             }
         })
-        val code = engine?.speak(line, TextToSpeech.QUEUE_FLUSH, null, "grok-$mine") ?: TextToSpeech.ERROR
-        Log.i(TAG, "tts speak code=$code chars=${line.length}")
-        Trace.event("tts speak code=$code chars=${line.length}")
-        if (code == TextToSpeech.ERROR) {
-            finish()
-            return
+        var queued = 0
+        for (index in pieces.indices) {
+            val mode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+            val code = engine?.speak(pieces[index], mode, null, "grok-$mine-$index") ?: TextToSpeech.ERROR
+            Log.i(TAG, "tts speak code=$code chunk=$index chars=${pieces[index].length}")
+            Trace.event("tts speak code=$code chars=${pieces[index].length}")
+            if (code == TextToSpeech.ERROR) {
+                if (queued == 0) {
+                    finish()
+                    return
+                }
+                spokenLast = index - 1
+                break
+            }
+            queued++
+            spokenLast = index
         }
-        val waitMs = (line.length * 90L).coerceIn(2500L, 20000L)
-        main.postDelayed(timeout, waitMs)
+        main.postDelayed(startGuard, 8_000L)
+    }
+
+    /** Short pieces, queued in order. The voice ends when the last piece reports onDone. */
+    private fun piecesOf(text: String): List<String> {
+        val limit = 240
+        val out = ArrayList<String>()
+        var rest = text.trim()
+        while (rest.isNotEmpty()) {
+            if (rest.length <= limit) {
+                out += rest
+                break
+            }
+            val window = rest.substring(0, limit)
+            val cut = listOf(
+                window.lastIndexOf(". "),
+                window.lastIndexOf("? "),
+                window.lastIndexOf("! "),
+                window.lastIndexOf(", "),
+                window.lastIndexOf(' '),
+            ).filter { it >= 40 }.maxOrNull() ?: (limit - 1)
+            val end = (cut + 1).coerceAtMost(rest.length)
+            val piece = rest.substring(0, end).trim()
+            if (piece.isNotEmpty()) out += piece
+            rest = rest.substring(end).trim()
+        }
+        return if (out.isEmpty()) listOf(text) else out
     }
 
     fun stop() {

@@ -82,7 +82,11 @@ Appeler quelqu'un du carnet d'adresses. « Grok, appelle Marie. » Il faut allum
 
 ## Quel téléphone
 
-Android 9 ou plus récent, un téléphone ARM ordinaire (64 ou 32 bits). Il faut un micro, et le réseau la première fois : un petit modèle de la phrase se télécharge, et chaque conversation avec Grok sort sur internet. L'application pèse environ 45 Mo, le modèle un peu plus. L'application officielle de Grok n'est pas nécessaire. Une clé de [console.x.ai](https://console.x.ai) l'est.
+Android 9 ou plus récent, un téléphone ARM ordinaire (64 ou 32 bits). Il faut un micro, et le réseau la première fois : le modèle de la phrase se télécharge, et chaque conversation avec Grok sort sur internet. L'application pèse environ 45 Mo, et le modèle environ 30 Mo. L'application officielle de Grok n'est pas nécessaire. Une clé de [console.x.ai](https://console.x.ai) l'est.
+
+## La première fois prend du temps
+
+Au premier appui sur **Écouter**, le téléphone télécharge le modèle de la phrase d'activation. L'écran affiche « Téléchargement du modèle de phrase », puis, à la fin de ce téléchargement, « Installation du modèle de phrase ». Le paquet pèse environ 30 Mo. Le pourcentage de l'installation est le dépaquetage, et il avance. Il faut le laisser jusqu'à la fin, quand l'écran d'écoute revient. Il reste sur le téléphone et ne se télécharge plus. Il n'y a pas d'autre modèle.
 
 ## Comment la préparer
 
@@ -90,7 +94,7 @@ Android 9 ou plus récent, un téléphone ARM ordinaire (64 ou 32 bits). Il faut
 2. Sur le téléphone, autorisez l'installation depuis cette source et ouvrez le fichier.
 3. Ouvrez Oigo et touchez la petite icône en haut à gauche.
 4. Collez la clé. Changez la langue, la phrase ou le volume de la voix si vous voulez. Elle est sur « hola grok », et le volume à 80 %.
-5. Revenez et appuyez sur **Écouter**. Acceptez le micro et, si on le demande, les notifications.
+5. Revenez et appuyez sur **Écouter**. Acceptez le micro et, si on le demande, les notifications. La première fois, un pourcentage s'affiche pendant le téléchargement du modèle. Attendez la fin. Ne fermez pas l'application.
 6. Dites « hola grok ». Dans la conversation, chaque phrase commence par grok. « Grok, gracias » la ferme.
 7. Les permissions ci-dessous ne sont pas un supplément. Sans elles, le bouton est pressé et le téléphone ferme l'écoute dès que l'écran s'éteint.
 

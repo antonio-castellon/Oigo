@@ -18,12 +18,13 @@ class GrokClientTest {
     }
 
     @Test
-    fun longRouteIsGrok47HighWithin30Seconds() {
+    fun longRouteWaitsForTheWholeStory() {
         val long = routeFor("grok-4.3", lookup = false, long = true)
         assertEquals("grok-4.7", long.model)
         assertEquals("high", long.effort)
         assertTrue(long.long)
-        assertTrue(long.connectMs + long.readMs <= 30_000)
+        assertEquals(20_000, long.connectMs)
+        assertEquals(180_000, long.readMs)
     }
 
     @Test

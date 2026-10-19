@@ -88,7 +88,7 @@
     <string name="wake_name">Nom</string>
     <string name="wake_name_help">Il est gardé en phonèmes, pas un enregistrement de ta voix. Il s\'applique en appuyant de nouveau sur Écouter.</string>
     <string name="debug_mode">Débogage</string>
-    <string name="debug_help">Sept phrases tiennent en bas, en petit. En rouge, elles restent sur le téléphone. En vert, elles partent vers Grok.</string>
+    <string name="debug_help">La phrase la plus récente en haut. Les longues continuent à la ligne suivante. En rouge, elles restent sur le téléphone. En vert, elles partent vers Grok.</string>
     <string name="api_key">Clé API xAI</string>
     <string name="api_key_help">L\'application Grok officielle ne partage pas sa session. Collez une fois la clé de console.x.ai. Elle reste sur ce téléphone.</string>
     <string name="model">Modèle</string>

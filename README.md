@@ -81,7 +81,11 @@ Llamar a alguien de la agenda. «Grok, llama a María.» En ajustes hay que ence
 
 ## Qué teléfono hace falta
 
-Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micrófono, y red la primera vez: baja un modelo pequeño de la frase, y cada charla con Grok sale a internet. La aplicación ocupa unos 45 MB, y el modelo, unos pocos más. No hace falta tener instalada la aplicación oficial de Grok. Sí hace falta una clave de [console.x.ai](https://console.x.ai).
+Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micrófono, y red la primera vez: baja el modelo de la frase, y cada charla con Grok sale a internet. La aplicación ocupa unos 45 MB, y el modelo, unos 30 MB. No hace falta tener instalada la aplicación oficial de Grok. Sí hace falta una clave de [console.x.ai](https://console.x.ai).
+
+## La primera vez tarda
+
+Al pulsar **Escuchar** la primera vez, el teléfono baja el modelo de la frase de activación. En pantalla sale «Descargando el modelo de la frase» y, al acabar esa descarga, «Instalando el modelo de la frase». El paquete pesa unos 30 MB. El porcentaje de la instalación es el desempaquetado, y se mueve. Hay que dejarlo hasta que termine y vuelva la pantalla de escucha. Se guarda en el teléfono y no se vuelve a bajar. No hay otro modelo.
 
 ## Cómo dejarla lista
 
@@ -89,7 +93,7 @@ Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micr�
 2. En el teléfono, permite instalar desde ese origen y abre el archivo.
 3. Abre Oigo y pulsa el icono pequeño de arriba a la izquierda.
 4. Pega la clave. Si quieres, cambia el idioma, la frase o el volumen de la voz. Viene en «hola grok», y el volumen al 80 %.
-5. Vuelve atrás y pulsa **Escuchar**. Acepta el micrófono y, si sale, las notificaciones.
+5. Vuelve atrás y pulsa **Escuchar**. Acepta el micrófono y, si sale, las notificaciones. La primera vez sale un porcentaje mientras baja el modelo. Espera a que termine. No cierres la aplicación.
 6. Di «hola grok». En la conversación, cada frase empieza por grok. «Grok, gracias» cierra la charla.
 7. Los permisos de abajo no son un extra. Sin ellos el botón se pulsa y el teléfono cierra la escucha al apagar la pantalla.
 

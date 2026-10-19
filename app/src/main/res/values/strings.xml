@@ -88,7 +88,7 @@
     <string name="wake_name">Name</string>
     <string name="wake_name_help">It is stored as phonemes, not a recording of your voice. It applies the next time you press Listen.</string>
     <string name="debug_mode">Debug</string>
-    <string name="debug_help">Seven phrases fit at the bottom, in small type. Red stays on the phone. Green is sent to Grok.</string>
+    <string name="debug_help">Newest phrase on top. Long phrases wrap onto the next line. Red stays on the phone. Green is sent to Grok.</string>
     <string name="api_key">xAI API key</string>
     <string name="api_key_help">The official Grok app does not share its login. Paste a key from console.x.ai once. It stays on this phone.</string>
     <string name="model">Model</string>
