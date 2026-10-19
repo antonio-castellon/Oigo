@@ -79,6 +79,10 @@ Una alarma o un aviso. «Grok, avísame a las ocho de llamar al médico.» «Gro
 
 Llamar a alguien de la agenda. «Grok, llama a María.» En ajustes hay que encender Llamadas. El teléfono pide los contactos y el permiso de llamar. Sin eso, no marca.
 
+## Parar una respuesta larga
+
+Si Grok se alarga y quieres cortarlo, pulsa el botón del centro cuando dice **No escuchar**. La voz se para en ese momento y la escucha se apaga. Para volver a oír, pulsa **Escuchar**.
+
 ## Qué teléfono hace falta
 
 Un Android 9 o más nuevo, de los normales (ARM, 64 o 32 bits). Hace falta micrófono, y red la primera vez: baja el modelo de la frase, y cada charla con Grok sale a internet. La aplicación ocupa unos 45 MB, y el modelo, unos 30 MB. No hace falta tener instalada la aplicación oficial de Grok. Sí hace falta una clave de [console.x.ai](https://console.x.ai).
