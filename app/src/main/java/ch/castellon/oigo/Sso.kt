@@ -430,6 +430,4 @@ private val ssoHosts = listOf(
     "apple.com",
     "icloud.com",
     "workos.com",
-    "cursor.com",
-    "cursor.sh",
 )
