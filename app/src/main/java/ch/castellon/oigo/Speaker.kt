@@ -57,8 +57,12 @@ class Speaker(context: Context, private val locale: Locale) {
             done()
             return
         }
-        val mine = ++turn
         val pieces = piecesOf(line)
+        if (pieces.isEmpty()) {
+            done()
+            return
+        }
+        val mine = ++turn
         var spokenLast = pieces.lastIndex
         var finished = false
         var started = false
@@ -123,31 +127,8 @@ class Speaker(context: Context, private val locale: Locale) {
         main.postDelayed(startGuard, 8_000L)
     }
 
-    /** Short pieces, queued in order. The voice ends when the last piece reports onDone. */
-    private fun piecesOf(text: String): List<String> {
-        val limit = 240
-        val out = ArrayList<String>()
-        var rest = text.trim()
-        while (rest.isNotEmpty()) {
-            if (rest.length <= limit) {
-                out += rest
-                break
-            }
-            val window = rest.substring(0, limit)
-            val cut = listOf(
-                window.lastIndexOf(". "),
-                window.lastIndexOf("? "),
-                window.lastIndexOf("! "),
-                window.lastIndexOf(", "),
-                window.lastIndexOf(' '),
-            ).filter { it >= 40 }.maxOrNull() ?: (limit - 1)
-            val end = (cut + 1).coerceAtMost(rest.length)
-            val piece = rest.substring(0, end).trim()
-            if (piece.isNotEmpty()) out += piece
-            rest = rest.substring(end).trim()
-        }
-        return if (out.isEmpty()) listOf(text) else out
-    }
+    /** One clause at a time, in order. The voice ends when the last piece reports onDone. */
+    private fun piecesOf(text: String): List<String> = speechPieces(text)
 
     fun stop() {
         turn++
@@ -163,6 +144,84 @@ class Speaker(context: Context, private val locale: Locale) {
         const val TAG = "GrokEar"
     }
 }
+
+/**
+ * Clauses for the voice. A comma, a stop, or a new line ends a piece, so the
+ * engine is not handed two sentences, and a word is not cut in half.
+ * A comma or a dot between digits stays, as in 1,5 or 3.14.
+ */
+internal fun speechPieces(text: String): List<String> {
+    val source = text.replace("\r\n", "\n").replace('\r', '\n').trim()
+    if (source.isEmpty()) return emptyList()
+    val out = ArrayList<String>()
+    val buf = StringBuilder()
+    var i = 0
+    while (i < source.length) {
+        val c = source[i]
+        if (c == '\n') {
+            emitClause(out, buf)
+            i++
+            continue
+        }
+        buf.append(c)
+        if (clauseBreak(source, i)) {
+            while (i + 1 < source.length && source[i + 1] in CLOSING) {
+                i++
+                buf.append(source[i])
+            }
+            emitClause(out, buf)
+        }
+        i++
+    }
+    emitClause(out, buf)
+    return out.flatMap { fitClause(it) }
+}
+
+private fun emitClause(out: MutableList<String>, buf: StringBuilder) {
+    val piece = buf.toString().trim()
+    buf.clear()
+    if (piece.isNotEmpty()) out += piece
+}
+
+private fun clauseBreak(text: String, i: Int): Boolean {
+    val c = text[i]
+    val prev = if (i > 0) text[i - 1] else ' '
+    val next = if (i + 1 < text.length) text[i + 1] else ' '
+    if (c == ',' || c == ';') return !(prev.isDigit() && next.isDigit())
+    if (c == '!' || c == '?' || c == '…') return true
+    if (c != '.') return false
+    if (next == '.') return false
+    if (prev.isDigit() && next.isDigit()) return false
+    return true
+}
+
+/** A clause with no punctuation still goes out whole words, never mid-word. */
+private fun fitClause(piece: String): List<String> {
+    if (piece.length <= CLAUSE_LIMIT) return listOf(piece)
+    val out = ArrayList<String>()
+    var rest = piece
+    while (rest.length > CLAUSE_LIMIT) {
+        val window = rest.substring(0, CLAUSE_LIMIT)
+        val space = window.lastIndexOf(' ')
+        if (space < 1) {
+            val next = rest.indexOf(' ')
+            if (next < 0) {
+                out += rest
+                return out
+            }
+            out += rest.substring(0, next)
+            rest = rest.substring(next + 1).trim()
+            continue
+        }
+        out += rest.substring(0, space).trim()
+        rest = rest.substring(space + 1).trim()
+    }
+    if (rest.isNotEmpty()) out += rest
+    return out
+}
+
+private const val CLAUSE_LIMIT = 160
+private const val CLOSING = "\"'»”’)"
 
 /** Media volume for the voice, and a hush so the recognizer beep stays silent. */
 internal object VoiceLevel {

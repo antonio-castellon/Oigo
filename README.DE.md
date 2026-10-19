@@ -80,6 +80,10 @@ Einen Wecker oder einen Hinweis. „Grok, weck mich um acht, um den Arzt anzuruf
 
 Jemanden aus dem Adressbuch anrufen. „Grok, ruf María an.“ Anrufe müssen in den Einstellungen an sein. Das Telefon fragt nach Kontakten und der Erlaubnis zu telefonieren. Ohne das wählt es nicht.
 
+## Eine lange Antwort anhalten
+
+Wenn Grok lange spricht und du ihn stoppen willst, drücke den mittleren Knopf, solange darauf **Nicht hören** steht. Die Stimme stoppt in dem Moment, und das Zuhören geht aus. Zum Weiterhören **Hören** drücken.
+
 ## Was das Telefon braucht
 
 Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht ein Mikrofon, und beim ersten Mal Netz: das Satzmodell wird geladen, und jedes Gespräch mit Grok geht ins Internet. Die App ist etwa 45 MB, das Modell etwa 30 MB. Die offizielle Grok-App ist nicht nötig. Ein Schlüssel von [console.x.ai](https://console.x.ai) schon.

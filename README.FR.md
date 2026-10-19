@@ -80,6 +80,10 @@ Une alarme ou un rappel. « Grok, rappelle-moi à huit heures d'appeler le méde
 
 Appeler quelqu'un du carnet d'adresses. « Grok, appelle Marie. » Il faut allumer Appels dans les réglages. Le téléphone demande les contacts et l'autorisation d'appeler. Sans cela, il ne compose pas.
 
+## Arrêter une longue réponse
+
+Si Grok dure et que tu veux le couper, appuie sur le bouton du centre pendant qu'il affiche **Ne plus écouter**. La voix s'arrête à ce moment-là, et l'écoute s'éteint. Pour entendre de nouveau, appuie sur **Écouter**.
+
 ## Quel téléphone
 
 Android 9 ou plus récent, un téléphone ARM ordinaire (64 ou 32 bits). Il faut un micro, et le réseau la première fois : le modèle de la phrase se télécharge, et chaque conversation avec Grok sort sur internet. L'application pèse environ 45 Mo, et le modèle environ 30 Mo. L'application officielle de Grok n'est pas nécessaire. Une clé de [console.x.ai](https://console.x.ai) l'est.

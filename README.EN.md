@@ -80,6 +80,10 @@ An alarm or a reminder. "Grok, wake me at eight to call the doctor." "Grok, in t
 
 A call to someone in the address book. "Grok, call María." Calls must be turned on in settings. The phone asks for contacts and the permission to call. Without that, it does not dial.
 
+## Stopping a long answer
+
+If Grok goes on and you want it to stop, press the center button while it says **Don't listen**. The voice stops then, and listening turns off. To hear again, press **Listen**.
+
 ## What the phone needs
 
 Android 9 or newer, a normal ARM phone (64-bit or 32-bit). It needs a microphone, and a network the first time: it downloads the phrase model, and every talk with Grok goes out to the internet. The app is about 45 MB, and the model about 30 MB. The official Grok app is not required. An API key from [console.x.ai](https://console.x.ai) is.
