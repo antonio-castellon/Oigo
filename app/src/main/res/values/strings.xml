@@ -8,6 +8,7 @@
     <string name="mic_stopped">The microphone is not listening. Open the app and press the button.</string>
     <string name="status_preparing">Preparing the microphone</string>
     <string name="status_downloading">Downloading the phrase model, %1$d%%</string>
+    <string name="status_installing">Installing the phrase model, %1$d%%</string>
     <string name="status_listening">Listening. Say “%1$s.”</string>
     <string name="status_your_turn">Say %1$s, then the question</string>
     <string name="status_message_yes">Say yes</string>

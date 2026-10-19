@@ -36,8 +36,8 @@ class GrokClient(context: Context) {
         if (store.xaiConsent != true) return Answer.NeedConsent
         val key = store.bearer()
         if (key.isBlank()) return Answer.NeedKey
-        if (store.model == "grok-4.7") store.model = "grok-4.3"
-        val model = store.model.ifBlank { "grok-4.3" }
+        // The model in Settings is used as written. Blank means the default.
+        val model = store.model.trim().ifBlank { "grok-4.3" }
         val earlier: String
         val prior: List<Turn>
         val gen: Int
@@ -76,16 +76,14 @@ class GrokClient(context: Context) {
             .put("instructions", system)
             .put("input", input)
             .put("include", JSONArray().put("no_inline_citations"))
-        if (model == "grok-4.3") {
-            body.put("reasoning", JSONObject().put("effort", if (lookup) "low" else "none"))
-        }
+        reasoningEffort(model, lookup)?.let { body.put("reasoning", JSONObject().put("effort", it)) }
         if (lookup) {
             val tools = JSONArray().put(JSONObject().put("type", "web_search"))
             if (needsX(text)) tools.put(JSONObject().put("type", "x_search"))
             body.put("tools", tools)
             body.put("tool_choice", "required")
         }
-        val payload = body.toString().toByteArray(Charsets.UTF_8)
+        var payload = body.toString().toByteArray(Charsets.UTF_8)
         return try {
             var result: Answer = Answer.Failed
             for (attempt in 1..2) {
@@ -93,6 +91,13 @@ class GrokClient(context: Context) {
                 if (code == 429 && attempt == 1) {
                     Trace.event("api 429 retry")
                     Thread.sleep(1_000)
+                    continue
+                }
+                // A model that refuses the reasoning field gets the same question once without it.
+                if (code == 400 && attempt == 1 && body.has("reasoning") && raw.contains("reasoning", ignoreCase = true)) {
+                    Trace.event("api 400 reasoning retry model=$model")
+                    body.remove("reasoning")
+                    payload = body.toString().toByteArray(Charsets.UTF_8)
                     continue
                 }
                 if (code == 401) {
@@ -112,7 +117,7 @@ class GrokClient(context: Context) {
                 }
                 if (code !in 200..299) {
                     Log.i(TAG, "api $code ${raw.take(180).replace(Regex("\\s+"), " ")}")
-                    Trace.event("api $code failed")
+                    Trace.event("api $code failed model=$model")
                     result = Answer.Failed
                     break
                 }
@@ -318,4 +323,14 @@ class GrokClient(context: Context) {
         data object Fuel : Answer()
         data object Failed : Answer()
     }
+}
+
+/**
+ * reasoning.effort only for models known to take it. grok-4.7 refuses "none" with a 400
+ * but takes "low", and answers about twice as fast with it. Any other model gets none.
+ */
+internal fun reasoningEffort(model: String, lookup: Boolean): String? = when (model) {
+    "grok-4.3" -> if (lookup) "low" else "none"
+    "grok-4.7" -> "low"
+    else -> null
 }

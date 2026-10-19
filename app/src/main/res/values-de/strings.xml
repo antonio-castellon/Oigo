@@ -8,6 +8,7 @@
     <string name="mic_stopped">Das Mikrofon hört nicht zu. Öffne die App und drücke den Knopf.</string>
     <string name="status_preparing">Mikrofon wird vorbereitet</string>
     <string name="status_downloading">Sprachmodell wird geladen, %1$d%%</string>
+    <string name="status_installing">Sprachmodell wird installiert, %1$d%%</string>
     <string name="status_listening">Zuhören. Sag „%1$s“.</string>
     <string name="status_your_turn">Sag %1$s und dann die Frage</string>
     <string name="status_message_yes">Sag ja</string>

@@ -8,6 +8,7 @@
     <string name="mic_stopped">Il microfono non sta ascoltando. Apri l\'app e premi il pulsante.</string>
     <string name="status_preparing">Preparazione del microfono</string>
     <string name="status_downloading">Scaricamento del modello della frase, %1$d%%</string>
+    <string name="status_installing">Installazione del modello della frase, %1$d%%</string>
     <string name="status_listening">In ascolto. Di «%1$s».</string>
     <string name="status_your_turn">Di %1$s e poi la domanda</string>
     <string name="status_message_yes">Di sì</string>

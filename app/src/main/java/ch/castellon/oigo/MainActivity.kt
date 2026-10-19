@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,12 +27,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -187,6 +191,7 @@ private fun Home(
     val mic by EarState.mic.collectAsState()
     val debugOn by EarState.debug.collectAsState()
     val lines by EarState.lines.collectAsState()
+    val modelStep by ModelStore.step.collectAsState()
     val idle = stringResource(R.string.status_idle, called)
     val ink = Color(0xFFE7F0EA)
     val paper = Color(0xFF101418)
@@ -353,14 +358,33 @@ private fun Home(
                     )
                 }
             }
+            val step = modelStep
             if (hasKey) {
                 Text(
-                    text = status.ifBlank { idle },
+                    text = if (step != null) {
+                        stringResource(
+                            if (step.installing) R.string.status_installing else R.string.status_downloading,
+                            step.percent,
+                        )
+                    } else {
+                        status.ifBlank { idle }
+                    },
                     color = ink,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 26.sp,
                     modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 28.dp),
+                )
+            }
+            if (hasKey && step != null) {
+                LinearProgressIndicator(
+                    progress = { step.percent / 100f },
+                    color = Color(0xFF3DDC84),
+                    trackColor = Color(0xFF2C3532),
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .width(240.dp)
+                        .height(8.dp),
                 )
             }
             if (hasKey && inConversation) {
@@ -389,18 +413,23 @@ private fun Home(
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .fillMaxWidth()
+                    .heightIn(max = 124.dp)
+                    .clipToBounds(),
             ) {
+                // Newest on top, always in view. Long phrases wrap under their own text, not under the bullet.
                 lines.forEach { line ->
-                    Text(
-                        text = line.text,
-                        color = if (line.sent) Color(0xFF1B8F45) else Color(0xFFC62828),
-                        fontSize = 13.sp,
-                        lineHeight = 16.sp,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
+                    val color = if (line.sent) Color(0xFF1B8F45) else Color(0xFFC62828)
+                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
+                        Text(text = "•", color = color, fontSize = 13.sp, lineHeight = 16.sp)
+                        Text(
+                            text = line.text,
+                            color = color,
+                            fontSize = 13.sp,
+                            lineHeight = 16.sp,
+                            modifier = Modifier.weight(1f).padding(start = 6.dp),
+                        )
+                    }
                 }
             }
         }
