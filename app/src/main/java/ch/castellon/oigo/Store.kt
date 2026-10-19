@@ -117,6 +117,48 @@ class Store(context: Context) {
         get() = secret.getLong(OAUTH_EXPIRES, 0L)
         set(value) = secret.edit().putLong(OAUTH_EXPIRES, value).apply()
 
+    /** Writes the three token fields together, before the process can be killed. */
+    fun saveOauth(access: String, refresh: String, expiresAt: Long) {
+        secret.edit()
+            .putString(OAUTH_ACCESS, access)
+            .putString(OAUTH_REFRESH, refresh)
+            .putLong(OAUTH_EXPIRES, expiresAt)
+            .commit()
+    }
+
+    var pendingDevice: String
+        get() = plain.getString(PENDING_DEVICE, "") ?: ""
+        set(value) {
+            plain.edit().putString(PENDING_DEVICE, value).commit()
+        }
+
+    var pendingInterval: Int
+        get() = plain.getInt(PENDING_INTERVAL, 5).coerceAtLeast(1)
+        set(value) {
+            plain.edit().putInt(PENDING_INTERVAL, value.coerceAtLeast(1)).commit()
+        }
+
+    var pendingUntil: Long
+        get() = plain.getLong(PENDING_UNTIL, 0L)
+        set(value) {
+            plain.edit().putLong(PENDING_UNTIL, value).commit()
+        }
+
+    var pendingUrl: String
+        get() = plain.getString(PENDING_URL, "") ?: ""
+        set(value) {
+            plain.edit().putString(PENDING_URL, value).commit()
+        }
+
+    fun clearPending() {
+        plain.edit()
+            .remove(PENDING_DEVICE)
+            .remove(PENDING_INTERVAL)
+            .remove(PENDING_UNTIL)
+            .remove(PENDING_URL)
+            .commit()
+    }
+
     /** Returns a usable bearer token, refreshing OAuth if needed. Empty if none. */
     fun bearer(): String {
         if (authMode == AUTH_OAUTH) {
@@ -204,6 +246,10 @@ class Store(context: Context) {
         private const val OAUTH_ACCESS = "oauth_access"
         private const val OAUTH_REFRESH = "oauth_refresh"
         private const val OAUTH_EXPIRES = "oauth_expires"
+        private const val PENDING_DEVICE = "oauth_pending_device"
+        private const val PENDING_INTERVAL = "oauth_pending_interval"
+        private const val PENDING_UNTIL = "oauth_pending_until"
+        private const val PENDING_URL = "oauth_pending_url"
         private const val ALERT_INDEX = "alert_index"
         private const val INSTALL = "install_id"
 

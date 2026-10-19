@@ -3,7 +3,6 @@ package ch.castellon.oigo
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -35,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,8 +77,12 @@ class MainActivity : LocalizedActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val liveSignIn by Sso.signedIn.collectAsState()
+            LaunchedEffect(liveSignIn) {
+                if (liveSignIn) hasKey = true
+            }
             GrokTheme {
-                Home(hasKey, called, authMode, ssoStatus, consent, ::listen, ::openSettings, ::startSso) { askConsent {} }
+                Home(hasKey || liveSignIn, called, authMode, ssoStatus, consent, ::listen, ::openSettings, ::startSso) { askConsent {} }
                 if (disclosure) XaiDisclosure(::answerConsent, ::closeConsent)
             }
         }
@@ -87,6 +91,8 @@ class MainActivity : LocalizedActivity() {
     override fun onResume() {
         super.onResume()
         val store = Store(this)
+        Sso.refresh(this)
+        Sso.resume(this)
         hasKey = store.bearer().isNotBlank()
         called = store.displayName()
         authMode = store.authMode
@@ -97,6 +103,7 @@ class MainActivity : LocalizedActivity() {
     }
 
     private fun listen() {
+        if (Sso.signedIn.value) hasKey = true
         if (!hasKey) return
         if (EarState.listening.value) {
             ListenService.stop(this)
@@ -150,32 +157,13 @@ class MainActivity : LocalizedActivity() {
             return
         }
         ssoStatus = getString(R.string.sso_status_waiting)
-        Thread {
-            val dc = XaiOAuth.requestDeviceCode()
-            if (dc == null) {
-                runOnUiThread { ssoStatus = getString(R.string.sso_status_fail) }
-                return@Thread
-            }
-            runOnUiThread {
-                ssoStatus = getString(R.string.sso_code_prompt, dc.verificationUri, dc.userCode)
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dc.verificationUriComplete ?: dc.verificationUri)))
-                } catch (_: Exception) {}
-            }
-            val tokens = XaiOAuth.pollForTokens(dc.deviceCode, dc.interval, dc.expiresIn)
-            runOnUiThread {
-                if (tokens != null) {
-                    val store = Store(this)
-                    store.oauthAccess = tokens.accessToken
-                    store.oauthRefresh = tokens.refreshToken
-                    store.oauthExpiresAt = System.currentTimeMillis() + tokens.expiresIn * 1000L
-                    ssoStatus = getString(R.string.sso_status_ok)
-                    hasKey = true
-                } else {
-                    ssoStatus = getString(R.string.sso_status_fail)
-                }
-            }
-        }.start()
+        Sso.request(
+            this,
+            onFail = { ssoStatus = getString(R.string.sso_status_fail) },
+            onCode = { code ->
+                ssoStatus = getString(R.string.sso_code_prompt, code.verificationUri, code.userCode)
+            },
+        )
     }
 }
 
@@ -240,10 +228,26 @@ private fun Home(
                     Text(stringResource(R.string.xai_consent_review))
                 }
             }
-            if (!hasKey) {
+            val signInPage by Sso.page.collectAsState()
+            val browserKnown by Sso.browserKnown.collectAsState()
+            val signInFailed by Sso.failed.collectAsState()
+            if (!hasKey && signInPage.isNotBlank()) {
+                SsoWeb(signInPage)
+                if (ssoStatus.isNotBlank()) {
+                    Text(
+                        text = ssoStatus,
+                        color = ink,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 16.dp),
+                    )
+                }
+            }
+            if (!hasKey && signInPage.isBlank()) {
                 Text(
                     text = stringResource(
-                        if (authMode == Store.AUTH_OAUTH) R.string.need_sso_banner
+                        if (authMode == Store.AUTH_OAUTH && browserKnown) R.string.sso_status_waiting
+                        else if (authMode == Store.AUTH_OAUTH) R.string.need_sso_banner
                         else R.string.need_key_banner
                     ),
                     color = ink,
@@ -269,8 +273,17 @@ private fun Home(
                         )
                     }
                 }
+                if (signInFailed && ssoStatus.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.sso_status_fail),
+                        color = ink,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
+                    )
+                }
             }
-            Button(
+            if (hasKey || signInPage.isBlank()) Button(
                 onClick = onListen,
                 enabled = hasKey,
                 modifier = Modifier.size(240.dp),
