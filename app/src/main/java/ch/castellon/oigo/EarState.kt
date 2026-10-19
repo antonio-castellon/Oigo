@@ -11,6 +11,8 @@ object EarState {
     /** Raw microphone level. Speech on this phone sits near 0.01. */
     val mic = MutableStateFlow(0f)
     val debug = MutableStateFlow(false)
+    /** String id of the refused-key or expired-session banner. 0 when there is none. */
+    val keyBanner = MutableStateFlow(0)
 
     /** One heard phrase. Green on screen when it was sent to Grok. */
     data class HeardLine(val text: String, val sent: Boolean)

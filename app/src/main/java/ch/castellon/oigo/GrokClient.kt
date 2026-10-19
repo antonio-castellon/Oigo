@@ -5,6 +5,8 @@ import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
+import java.text.Normalizer
 import java.net.URL
 
 /**
@@ -32,12 +34,22 @@ class GrokClient(context: Context) {
     }
 
     /** The only place that sends a question to xAI, so the consent gate lives here. */
-    fun ask(store: Store, text: String, languageName: String, kept: String = ""): Answer {
+    /**
+     * [long] is the person's choice of the long answer. [onSend] runs once, after the consent
+     * and key gates, right before the question leaves the phone.
+     */
+    fun ask(
+        store: Store,
+        text: String,
+        languageName: String,
+        kept: String = "",
+        long: Boolean = false,
+        onSend: (Route) -> Unit = {},
+    ): Answer {
         if (store.xaiConsent != true) return Answer.NeedConsent
         val key = store.bearer()
         if (key.isBlank()) return Answer.NeedKey
-        // The model in Settings is used as written. Blank means the default.
-        val model = store.model.trim().ifBlank { "grok-4.3" }
+        val sso = store.authMode == Store.AUTH_OAUTH
         val earlier: String
         val prior: List<Turn>
         val gen: Int
@@ -70,91 +82,117 @@ class GrokClient(context: Context) {
         val input = JSONArray()
         prior.forEach { input.put(JSONObject().put("role", it.role).put("content", it.content)) }
         input.put(JSONObject().put("role", "user").put("content", text))
-        val body = JSONObject()
-            .put("model", model)
-            .put("store", false)
-            .put("instructions", system)
-            .put("input", input)
-            .put("include", JSONArray().put("no_inline_citations"))
-        reasoningEffort(model, lookup)?.let { body.put("reasoning", JSONObject().put("effort", it)) }
-        if (lookup) {
-            val tools = JSONArray().put(JSONObject().put("type", "web_search"))
-            if (needsX(text)) tools.put(JSONObject().put("type", "x_search"))
-            body.put("tools", tools)
-            body.put("tool_choice", "required")
-        }
-        var payload = body.toString().toByteArray(Charsets.UTF_8)
-        return try {
-            var result: Answer = Answer.Failed
-            for (attempt in 1..2) {
-                val (code, raw) = post(key, payload)
-                if (code == 429 && attempt == 1) {
-                    Trace.event("api 429 retry")
-                    Thread.sleep(1_000)
-                    continue
-                }
-                // A model that refuses the reasoning field gets the same question once without it.
-                if (code == 400 && attempt == 1 && body.has("reasoning") && raw.contains("reasoning", ignoreCase = true)) {
-                    Trace.event("api 400 reasoning retry model=$model")
-                    body.remove("reasoning")
-                    payload = body.toString().toByteArray(Charsets.UTF_8)
-                    continue
-                }
-                if (code == 401) {
-                    Trace.event("api 401 key")
-                    result = Answer.NeedKey
-                    break
-                }
-                if (code == 402) {
-                    Trace.event("api 402 fuel")
-                    result = Answer.Fuel
-                    break
-                }
-                if (code == 429) {
-                    Trace.event("api 429 failed")
-                    result = Answer.Failed
-                    break
-                }
-                if (code !in 200..299) {
-                    Log.i(TAG, "api $code ${raw.take(180).replace(Regex("\\s+"), " ")}")
-                    Trace.event("api $code failed model=$model")
-                    result = Answer.Failed
-                    break
-                }
-                val root = JSONObject(raw)
-                val content = spokenText(root)
-                Log.i(
-                    TAG,
-                    "api $code ${root.optString("status")} model=$model search=$lookup turns=${prior.size} bits=$bitCount digest=${earlier.length} chars=${content.length}",
-                )
-                Trace.event("api $code model=$model search=$lookup turns=${prior.size} chars=${content.length}")
-                if (content.isBlank()) {
-                    Log.i(TAG, "api empty search=$lookup")
-                    Trace.event("api empty search=$lookup")
-                    result = Answer.Failed
-                    break
-                }
-                synchronized(lock) {
-                    if (gen == generation) remember(text, content, System.currentTimeMillis())
-                }
-                result = Answer.Text(strip(content))
-                break
+        fun bodyFor(route: Route): JSONObject {
+            val body = JSONObject()
+                .put("model", route.model)
+                .put("store", false)
+                .put("instructions", system)
+                .put("input", input)
+                .put("include", JSONArray().put("no_inline_citations"))
+            route.effort?.let { body.put("reasoning", JSONObject().put("effort", it)) }
+            if (lookup) {
+                val tools = JSONArray().put(JSONObject().put("type", "web_search"))
+                if (needsX(text)) tools.put(JSONObject().put("type", "x_search"))
+                body.put("tools", tools)
+                body.put("tool_choice", "required")
             }
-            result
+            return body
+        }
+        fun once(route: Route): Answer {
+            val answer = send(key, bodyFor(route), route, lookup, sso, "turns=${prior.size} bits=$bitCount digest=${earlier.length}")
+            if (answer is Answer.Text) {
+                synchronized(lock) {
+                    if (gen == generation) remember(text, answer.value, System.currentTimeMillis())
+                }
+            }
+            return answer
+        }
+        val first = routeFor(store.model, lookup, long)
+        onSend(first)
+        val answer = try {
+            once(first)
+        } catch (error: SocketTimeoutException) {
+            if (!first.long) return failed(error)
+            Log.i(TAG, "longform timeout -> fallback")
+            Trace.event("longform timeout -> fallback")
+            null
         } catch (error: Exception) {
-            Log.e(TAG, "api failed", error)
-            Trace.event("api failed ${error.javaClass.simpleName}")
-            Answer.Failed
+            if (!first.long) return failed(error)
+            Trace.event("longform failed -> fallback ${error.javaClass.simpleName}")
+            null
+        }
+        // The long answer never leaves the person without one: the normal route asks the same question.
+        if (answer != null && !(first.long && answer == Answer.Failed)) return answer
+        if (answer != null) Trace.event("longform failed -> fallback")
+        return try {
+            once(routeFor(store.model, lookup, false))
+        } catch (error: Exception) {
+            failed(error)
         }
     }
 
+    /** One question on one route. Network errors are thrown to the caller. */
+    private fun send(key: String, body: JSONObject, route: Route, lookup: Boolean, sso: Boolean, sizes: String): Answer {
+        val model = route.model
+        var payload = body.toString().toByteArray(Charsets.UTF_8)
+        // The long route has one try inside its 30 s; the normal route keeps its retries.
+        val tries = if (route.long) 1 else 2
+        for (attempt in 1..tries) {
+            val (code, raw) = post(key, payload, route)
+            // Checked first, so a bad-key 400 is never taken for the reasoning retry below.
+            keyProblem(code, raw, sso)?.let {
+                Trace.event("api $code key sso=$sso")
+                return it
+            }
+            if (code == 429 && attempt < tries) {
+                Trace.event("api 429 retry")
+                Thread.sleep(1_000)
+                continue
+            }
+            // A model that refuses the reasoning field gets the same question once without it.
+            if (code == 400 && attempt < tries && body.has("reasoning") && raw.contains("reasoning", ignoreCase = true)) {
+                Trace.event("api 400 reasoning retry model=$model")
+                body.remove("reasoning")
+                payload = body.toString().toByteArray(Charsets.UTF_8)
+                continue
+            }
+
+            if (code == 402) {
+                Trace.event("api 402 fuel")
+                return Answer.Fuel
+            }
+            if (code !in 200..299) {
+                Log.i(TAG, "api $code ${raw.take(180).replace(Regex("\\s+"), " ")}")
+                Trace.event("api $code failed model=$model")
+                return Answer.Failed
+            }
+            val root = JSONObject(raw)
+            val content = spokenText(root)
+            Log.i(TAG, "api $code ${root.optString("status")} model=$model effort=${route.effort} search=$lookup $sizes chars=${content.length}")
+            Trace.event("api $code model=$model effort=${route.effort} search=$lookup chars=${content.length}")
+            if (content.isBlank()) {
+                Log.i(TAG, "api empty search=$lookup")
+                Trace.event("api empty search=$lookup")
+                return Answer.Failed
+            }
+            return Answer.Text(strip(content))
+        }
+        return Answer.Failed
+    }
+
+    private fun failed(error: Exception): Answer {
+        Log.e(TAG, "api failed", error)
+        Trace.event("api failed ${error.javaClass.simpleName}")
+        return Answer.Failed
+    }
+
     /** One POST. A 429 is retried by the caller with a fresh connection. */
-    private fun post(key: String, payload: ByteArray): Pair<Int, String> {
+    private fun post(key: String, payload: ByteArray, route: Route): Pair<Int, String> {
         val connection = URL("https://api.x.ai/v1/responses").openConnection() as HttpURLConnection
         return try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = 20000
-            connection.readTimeout = 35000
+            connection.connectTimeout = route.connectMs
+            connection.readTimeout = route.readMs
             connection.doOutput = true
             connection.setRequestProperty("Authorization", "Bearer $key")
             connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -319,10 +357,27 @@ class GrokClient(context: Context) {
     sealed class Answer {
         data class Text(val value: String) : Answer()
         data object NeedKey : Answer()
+        /** The typed API key was refused. */
+        data object BadKey : Answer()
+        /** The SuperGrok sign-in token was refused. */
+        data object SessionExpired : Answer()
         data object NeedConsent : Answer()
         data object Fuel : Answer()
         data object Failed : Answer()
     }
+}
+
+/** Where one question goes: model, reasoning effort and how long to wait for it. */
+data class Route(val model: String, val effort: String?, val connectMs: Int, val readMs: Int, val long: Boolean)
+
+/**
+ * The long answer is grok-4.7 with high effort, at most 30 s in total (connect + read), then the
+ * normal route. The normal route is the model in Settings, blank meaning grok-4.3.
+ */
+internal fun routeFor(settingsModel: String, lookup: Boolean, long: Boolean): Route {
+    if (long) return Route("grok-4.7", "high", connectMs = 5_000, readMs = 25_000, long = true)
+    val model = settingsModel.trim().ifBlank { "grok-4.3" }
+    return Route(model, reasoningEffort(model, lookup), connectMs = 20_000, readMs = 35_000, long = false)
 }
 
 /**
@@ -333,4 +388,59 @@ internal fun reasoningEffort(model: String, lookup: Boolean): String? = when (mo
     "grok-4.3" -> if (lookup) "low" else "none"
     "grok-4.7" -> "low"
     else -> null
+}
+
+private fun plain(text: String): String =
+    Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
+
+private val LONG_FORM = Regex(
+    "\\b(historia de|history of|histoire de|geschichte de[rsn]|storia de|historic\\w*|histori\\w*|biografi\\w*|biograph\\w*|" +
+        "siglo|century|siecle|jahrhundert|secolo|guerra|guerre|krieg|batalla|battle|bataille|schlacht|imperio|empire|impero|" +
+        "revolucion|revolution|rivoluzione|" +
+        "cuento|cuentame|relato|una historia|story|tale|conte|une histoire|marchen|eine geschichte|fiaba|favola|racconto|una storia|" +
+        "leeme|lee me|leer|lectura|read me|read to me|read aloud|lis moi|lire|lies mir|vorlesen|leggimi|leggere)\\b",
+)
+private val MESSAGES = Regex("\\b(mensaje\\w*|message\\w*|nachricht\\w*|messaggi\\w*|whatsapp|telegram|correo\\w*|mail\\w*|sms)\\b")
+
+/** History, stories and reading aloud get the short-or-long question. Messages are commands, not this. */
+internal fun isLongForm(text: String): Boolean {
+    val folded = plain(text)
+    return LONG_FORM.containsMatchIn(folded) && !MESSAGES.containsMatchIn(folded)
+}
+
+private val LONG_WORDS = mapOf(
+    "es" to setOf("larga", "largo", "completa", "completo", "extensa", "extenso"),
+    "en" to setOf("long", "longer", "full", "complete", "detailed"),
+    "de" to setOf("lang", "lange", "langen", "ausfuhrlich", "ausfuhrliche", "vollstandig", "vollstandige"),
+    "fr" to setOf("longue", "long", "complete", "detaillee", "detaille"),
+    "it" to setOf("lunga", "lungo", "completa", "completo", "dettagliata"),
+)
+private val SHORT_WORDS = mapOf(
+    "es" to setOf("corta", "corto", "breve", "resumida", "resumen"),
+    "en" to setOf("short", "shorter", "brief", "quick"),
+    "de" to setOf("kurz", "kurze", "kurzen", "knapp", "knappe"),
+    "fr" to setOf("courte", "court", "breve", "rapide"),
+    "it" to setOf("corta", "corto", "breve", "veloce"),
+)
+
+/**
+ * The answer to "short or long?". Only a long word in the app's language picks the long route.
+ * A short word, both, nothing heard or anything else is the short route.
+ */
+internal fun wantsLong(heard: String?, language: String): Boolean {
+    if (heard.isNullOrBlank()) return false
+    val words = plain(heard).split(Regex("[^\\p{L}]+")).filter { it.isNotBlank() }.toSet()
+    val lang = if (language in LONG_WORDS) language else "en"
+    if (words.any { it in SHORT_WORDS.getValue(lang) }) return false
+    return words.any { it in LONG_WORDS.getValue(lang) }
+}
+
+/**
+ * A refused key. xAI answers a wrong API key with 400 "Incorrect API key provided", not 401.
+ * With the SuperGrok sign-in, 401 or 403 means the session ran out. Null when it is not the key.
+ */
+internal fun keyProblem(code: Int, raw: String, sso: Boolean): GrokClient.Answer? {
+    val refused = code == 401 || code == 403 || (code == 400 && raw.contains("api key", ignoreCase = true))
+    if (!refused) return null
+    return if (sso) GrokClient.Answer.SessionExpired else GrokClient.Answer.BadKey
 }

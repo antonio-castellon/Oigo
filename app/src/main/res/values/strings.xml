@@ -17,6 +17,8 @@
     <string name="hello">Hello</string>
     <string name="status_thinking">Thinking</string>
     <string name="still_thinking">Still thinking.</string>
+    <string name="length_question">Do you want the short or the long answer?</string>
+    <string name="long_notice">I\'ll look up the information and be back in a moment. This sometimes takes me a bit longer, so please be patient.</string>
     <string name="status_model_failed">The phrase model could not be prepared</string>
     <string name="status_idle">Press the button. Say “%1$s,” and whatever you want to say.</string>
     <string name="status_need_mic">The microphone permission is required.</string>
@@ -35,6 +37,10 @@
     <string name="no_message">All right. I will not read it.</string>
     <string name="bye">See you.</string>
     <string name="need_key">The API key is missing. Open settings and paste the key from the xAI console.</string>
+    <string name="need_key_invalid">The API key is not valid. Check the key from the xAI console in Settings.</string>
+    <string name="need_key_invalid_banner">Invalid API key. Change it in Settings.</string>
+    <string name="session_expired">Your SuperGrok session has expired. Please sign in again in Settings.</string>
+    <string name="session_expired_banner">Session expired. Sign in again.</string>
     <string name="need_key_banner">Enter the API key in settings.</string>
     <string name="need_sso_banner">Sign in with SuperGrok to start listening.</string>
     <string name="sso_sign_in">Sign in with SuperGrok</string>
