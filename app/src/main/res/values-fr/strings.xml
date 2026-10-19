@@ -8,6 +8,7 @@
     <string name="mic_stopped">Le micro n\'écoute pas. Ouvrez l\'application et appuyez sur le bouton.</string>
     <string name="status_preparing">Préparation du micro</string>
     <string name="status_downloading">Téléchargement du modèle de phrase, %1$d%%</string>
+    <string name="status_installing">Installation du modèle de phrase, %1$d%%</string>
     <string name="status_listening">Écoute. Dis « %1$s ».</string>
     <string name="status_your_turn">Dis %1$s, puis la question</string>
     <string name="status_message_yes">Dis oui</string>

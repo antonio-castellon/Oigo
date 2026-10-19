@@ -30,10 +30,12 @@ object Notifier {
         manager.createNotificationChannel(reminder)
     }
 
-    fun listening(context: Context, text: String): Notification {
-        return base(context, LISTEN, text)
+    /** [percent] from 0 to 100 adds a progress bar, for the phrase model. */
+    fun listening(context: Context, text: String, percent: Int = -1): Notification {
+        val builder = base(context, LISTEN, text)
             .addAction(0, context.getString(R.string.stop_listening), stopIntent(context))
-            .build()
+        if (percent in 0..100) builder.setProgress(100, percent, false)
+        return builder.build()
     }
 
     fun alert(context: Context, text: String): Notification {

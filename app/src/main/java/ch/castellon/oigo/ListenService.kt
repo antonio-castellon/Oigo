@@ -23,6 +23,8 @@ import com.k2fsa.sherpa.onnx.OnlineStream
 import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig
 import java.util.Locale
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -242,13 +244,17 @@ class ListenService : Service() {
     private fun prepare() {
         val store = Store(this)
         try {
-            val model = ModelStore.ready(this, store.wakeLines()) { percent ->
-                val line = phrase(R.string.status_downloading, percent)
-                main.post {
-                    EarState.status.value = line
-                    goForeground(line)
+            val job = ModelStore.fetch(this)
+            while (job != null) {
+                try {
+                    job.get(500, TimeUnit.MILLISECONDS)
+                    break
+                } catch (_: TimeoutException) {
+                    showModel(ModelStore.step.value)
                 }
             }
+            if (!alive.get()) return
+            val model = ModelStore.ready(this, store.wakeLines())
             val config = KeywordSpotterConfig(
                 featConfig = FeatureConfig(sampleRate = 16000, featureDim = 80),
                 modelConfig = OnlineModelConfig(
@@ -785,10 +791,11 @@ class ListenService : Service() {
     }
 
     private fun ask(text: String, shown: String = text) {
+        // On screen as soon as it is heard, not when the answer comes back.
+        remember(shown, false)
         work.execute {
             val spoken = decide(text)
             main.post {
-                remember(shown, spoken.sent)
                 if (!alive.get()) return@post
                 if (spoken.line.isNullOrBlank()) {
                     next()
@@ -898,6 +905,15 @@ class ListenService : Service() {
         EarState.status.value = ui.getString(R.string.status_thinking)
         main.removeCallbacks(stillThinking)
         main.postDelayed(stillThinking, 5_000L)
+        // One beep the moment the question goes to Grok. Not when consent stops it.
+        // The recognizer has already finished and the voice has not started, so it is not heard back.
+        // The heard line turns green at the same moment.
+        if (store.xaiConsent == true) {
+            main.post {
+                markSent()
+                if (alive.get()) chime()
+            }
+        }
         Log.i(TAG, "api send chars=${useful.length}")
         val answer = try {
             grok.ask(store, useful, languageName(store), Memory.block(this))
@@ -1031,8 +1047,19 @@ class ListenService : Service() {
         stopSelf()
     }
 
-    private fun goForeground(text: String) {
-        val notification = Notifier.listening(this, text)
+    /** Download or install of the phrase model. Waiting here never cancels the model job. */
+    private fun showModel(step: ModelStore.Step?) {
+        step ?: return
+        val line = phrase(if (step.installing) R.string.status_installing else R.string.status_downloading, step.percent)
+        main.post {
+            if (!alive.get()) return@post
+            EarState.status.value = line
+            goForeground(line, step.percent)
+        }
+    }
+
+    private fun goForeground(text: String, percent: Int = -1) {
+        val notification = Notifier.listening(this, text, percent)
         if (Build.VERSION.SDK_INT >= 29) {
             startForeground(Notifier.LISTEN_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         } else {
@@ -1045,13 +1072,19 @@ class ListenService : Service() {
     /** Screen and spoken lines follow the language chosen in the app. */
     private fun phrase(id: Int, vararg args: Any): String = localized().getString(id, *args)
 
-    /** Keeps seven heard phrases. Red on screen when the phrase stayed on the phone. */
+    /** Keeps seven heard phrases, newest first. Red on screen when the phrase stayed on the phone. */
     private fun remember(line: String, sent: Boolean) {
         if (!EarState.debug.value) return
-        val clean = line.trim().replace('\n', ' ').take(96)
+        val clean = line.trim().replace('\n', ' ')
         if (clean.isBlank()) return
-        val next = EarState.lines.value + EarState.HeardLine(clean, sent)
-        EarState.lines.value = next.takeLast(7)
+        EarState.lines.value = (listOf(EarState.HeardLine(clean, sent)) + EarState.lines.value).take(7)
+    }
+
+    /** The newest heard phrase went to Grok: green on screen. */
+    private fun markSent() {
+        val lines = EarState.lines.value
+        val newest = lines.firstOrNull() ?: return
+        EarState.lines.value = listOf(newest.copy(sent = true)) + lines.drop(1)
     }
 
     private fun languageName(store: Store): String = when (store.language) {

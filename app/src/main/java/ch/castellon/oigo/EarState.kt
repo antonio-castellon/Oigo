@@ -15,6 +15,6 @@ object EarState {
     /** One heard phrase. Green on screen when it was sent to Grok. */
     data class HeardLine(val text: String, val sent: Boolean)
 
-    /** Last heard phrases, newest last. Shown only while debug is on. */
+    /** Last heard phrases, newest first. Shown only while debug is on. */
     val lines = MutableStateFlow<List<HeardLine>>(emptyList())
 }
