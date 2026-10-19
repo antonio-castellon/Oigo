@@ -126,4 +126,16 @@
     <string name="alarm_confirm">At %1$s, %2$s. If that is right, say grok, yes.</string>
     <string name="note_confirm">I would save: %1$s. If that is right, say grok, yes.</string>
     <string name="kept_no">I will not save it.</string>
+    <string name="xai_consent_title">Data sent to xAI</string>
+    <string name="xai_consent_text">Your spoken questions (as text), recent conversation and your saved notes and alarms are sent to xAI (Grok) to answer you. Speech recognition uses your device\'s speech service. Nothing is sent to the developer.</string>
+    <string name="xai_consent_link">Privacy policy</string>
+    <string name="xai_consent_accept">I agree</string>
+    <string name="xai_consent_decline">Decline</string>
+    <string name="xai_consent_declined">You declined. Nothing is sent to xAI, so questions cannot be answered. You can review your choice at any time.</string>
+    <string name="xai_consent_review">Review</string>
+    <string name="xai_consent_needed">Before I can ask Grok, open the app and accept sending your questions to xAI.</string>
+    <string name="xai_consent_show">View disclosure</string>
+    <string name="xai_consent_yes">You agreed. Your questions are sent to xAI to answer you.</string>
+    <string name="xai_consent_no">You declined. Nothing is sent to xAI.</string>
+    <string name="xai_consent_unset">Not answered yet. Nothing is sent to xAI.</string>
 </resources>

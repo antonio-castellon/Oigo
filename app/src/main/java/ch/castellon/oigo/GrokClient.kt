@@ -31,7 +31,9 @@ class GrokClient(context: Context) {
         save()
     }
 
+    /** The only place that sends a question to xAI, so the consent gate lives here. */
     fun ask(store: Store, text: String, languageName: String, kept: String = ""): Answer {
+        if (store.xaiConsent != true) return Answer.NeedConsent
         val key = store.bearer()
         if (key.isBlank()) return Answer.NeedKey
         if (store.model == "grok-4.7") store.model = "grok-4.3"
@@ -312,6 +314,7 @@ class GrokClient(context: Context) {
     sealed class Answer {
         data class Text(val value: String) : Answer()
         data object NeedKey : Answer()
+        data object NeedConsent : Answer()
         data object Fuel : Answer()
         data object Failed : Answer()
     }

@@ -126,4 +126,16 @@
     <string name="alarm_confirm">Alle %1$s, %2$s. Se è giusto, di grok, sì.</string>
     <string name="note_confirm">Annoto: %1$s. Se è giusto, di grok, sì.</string>
     <string name="kept_no">Non la salvo.</string>
+    <string name="xai_consent_title">Dati inviati a xAI</string>
+    <string name="xai_consent_text">Le tue domande a voce (come testo), la conversazione recente e le note e sveglie salvate vengono inviate a xAI (Grok) per risponderti. Il riconoscimento vocale usa il servizio vocale del tuo dispositivo. Nulla viene inviato allo sviluppatore.</string>
+    <string name="xai_consent_link">Informativa sulla privacy</string>
+    <string name="xai_consent_accept">Accetto</string>
+    <string name="xai_consent_decline">Rifiuta</string>
+    <string name="xai_consent_declined">Hai rifiutato. Nulla viene inviato a xAI, quindi non è possibile rispondere alle domande. Puoi rivedere la tua scelta in qualsiasi momento.</string>
+    <string name="xai_consent_review">Rivedi</string>
+    <string name="xai_consent_needed">Prima che io possa chiedere a Grok, apri l\'app e accetta che le tue domande vengano inviate a xAI.</string>
+    <string name="xai_consent_show">Vedi informativa</string>
+    <string name="xai_consent_yes">Hai accettato. Le tue domande vengono inviate a xAI per risponderti.</string>
+    <string name="xai_consent_no">Hai rifiutato. Nulla viene inviato a xAI.</string>
+    <string name="xai_consent_unset">Non hai ancora risposto. Nulla viene inviato a xAI.</string>
 </resources>

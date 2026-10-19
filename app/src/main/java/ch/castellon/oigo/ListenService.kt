@@ -907,6 +907,7 @@ class ListenService : Service() {
         val line = when (answer) {
             is GrokClient.Answer.Text -> Commands.fromCloud(ui, store, answer.value) ?: answer.value
             GrokClient.Answer.NeedKey -> ui.getString(R.string.need_key)
+            GrokClient.Answer.NeedConsent -> ui.getString(R.string.xai_consent_needed)
             GrokClient.Answer.Fuel -> ui.getString(R.string.fuel)
             GrokClient.Answer.Failed -> ui.getString(R.string.grok_failed)
         }

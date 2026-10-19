@@ -33,6 +33,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +60,9 @@ class MainActivity : LocalizedActivity() {
     private var called by mutableStateOf("Grok")
     private var authMode by mutableStateOf(Store.AUTH_API)
     private var ssoStatus by mutableStateOf("")
+    private var consent by mutableStateOf<Boolean?>(null)
+    private var disclosure by mutableStateOf(false)
+    private var afterConsent: (() -> Unit)? = null
 
     private val askMic = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (!hasKey) return@registerForActivityResult
@@ -72,7 +76,12 @@ class MainActivity : LocalizedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { GrokTheme { Home(hasKey, called, authMode, ssoStatus, ::listen, ::openSettings, ::startSso) } }
+        setContent {
+            GrokTheme {
+                Home(hasKey, called, authMode, ssoStatus, consent, ::listen, ::openSettings, ::startSso) { askConsent {} }
+                if (disclosure) XaiDisclosure(::answerConsent, ::closeConsent)
+            }
+        }
     }
 
     override fun onResume() {
@@ -81,6 +90,8 @@ class MainActivity : LocalizedActivity() {
         hasKey = store.bearer().isNotBlank()
         called = store.displayName()
         authMode = store.authMode
+        consent = store.xaiConsent
+        if (consent == null) disclosure = true
         EarState.debug.value = Store(this).debug
         if (!hasKey && EarState.listening.value) ListenService.stop(this)
     }
@@ -89,6 +100,10 @@ class MainActivity : LocalizedActivity() {
         if (!hasKey) return
         if (EarState.listening.value) {
             ListenService.stop(this)
+            return
+        }
+        if (consent != true) {
+            askConsent(::listen)
             return
         }
         val needed = mutableListOf(Manifest.permission.RECORD_AUDIO)
@@ -105,12 +120,35 @@ class MainActivity : LocalizedActivity() {
         askMic.launch(missing.toTypedArray())
     }
 
+    /** Shows the disclosure. [then] runs only if the person accepts. */
+    private fun askConsent(then: () -> Unit) {
+        afterConsent = then
+        disclosure = true
+    }
+
+    private fun answerConsent(accepted: Boolean) {
+        Consent.answer(this, accepted)
+        consent = accepted
+        val then = afterConsent
+        closeConsent()
+        if (accepted) then?.invoke()
+    }
+
+    private fun closeConsent() {
+        disclosure = false
+        afterConsent = null
+    }
+
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     private fun startSso() {
         if (authMode != Store.AUTH_OAUTH) return
+        if (consent != true) {
+            askConsent(::startSso)
+            return
+        }
         ssoStatus = getString(R.string.sso_status_waiting)
         Thread {
             val dc = XaiOAuth.requestDeviceCode()
@@ -147,9 +185,11 @@ private fun Home(
     called: String,
     authMode: String,
     ssoStatus: String,
+    consent: Boolean?,
     onListen: () -> Unit,
     onSettings: () -> Unit,
     onStartSso: () -> Unit,
+    onReviewConsent: () -> Unit,
 ) {
     val listening by EarState.listening.collectAsState()
     val status by EarState.status.collectAsState()
@@ -187,6 +227,19 @@ private fun Home(
                 .padding(bottom = if (debugOn && lines.isNotEmpty()) 132.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            if (consent == false) {
+                Text(
+                    text = stringResource(R.string.xai_consent_declined),
+                    color = ink,
+                    fontSize = 18.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 24.sp,
+                    modifier = Modifier.padding(start = 32.dp, end = 32.dp),
+                )
+                TextButton(onClick = onReviewConsent, modifier = Modifier.padding(bottom = 12.dp)) {
+                    Text(stringResource(R.string.xai_consent_review))
+                }
+            }
             if (!hasKey) {
                 Text(
                     text = stringResource(
