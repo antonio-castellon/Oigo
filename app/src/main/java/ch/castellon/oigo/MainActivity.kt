@@ -192,6 +192,7 @@ private fun Home(
     val debugOn by EarState.debug.collectAsState()
     val lines by EarState.lines.collectAsState()
     val modelStep by ModelStore.step.collectAsState()
+    val keyBanner by EarState.keyBanner.collectAsState()
     val idle = stringResource(R.string.status_idle, called)
     val ink = Color(0xFFE7F0EA)
     val paper = Color(0xFF101418)
@@ -266,6 +267,16 @@ private fun Home(
                 TextButton(onClick = onReviewConsent, modifier = Modifier.padding(bottom = 12.dp)) {
                     Text(stringResource(R.string.xai_consent_review))
                 }
+            }
+            if (hasKey && keyBanner != 0) {
+                Text(
+                    text = stringResource(keyBanner),
+                    color = Color(0xFFE8833A),
+                    fontSize = 22.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 28.sp,
+                    modifier = Modifier.padding(start = 32.dp, end = 32.dp, bottom = 12.dp),
+                )
             }
             if (!hasKey && signInPage.isBlank()) {
                 Text(

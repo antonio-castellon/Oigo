@@ -22,6 +22,7 @@ import com.k2fsa.sherpa.onnx.OnlineModelConfig
 import com.k2fsa.sherpa.onnx.OnlineStream
 import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig
 import java.util.Locale
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -88,6 +89,18 @@ class ListenService : Service() {
         speaker?.say(phrase(R.string.still_thinking)) { }
     }
     @Volatile private var open = false
+    /** Set while the short-or-long answer is awaited; the recognizer result goes here. */
+    private var choiceEar: CompletableFuture<String?>? = null
+    private val choiceTimeout = Runnable {
+        val ear = choiceEar ?: return@Runnable
+        try {
+            recognizer?.cancel()
+        } catch (_: Exception) {
+        }
+        ear.complete(null)
+    }
+    private var noticeTalking = false
+    private var afterNotice: (() -> Unit)? = null
     private var handed = false
     private var record: AudioRecord? = null
     private var spotter: KeywordSpotter? = null
@@ -173,6 +186,9 @@ class ListenService : Service() {
     override fun onDestroy() {
         live = null
         alive.set(false)
+        main.removeCallbacks(choiceTimeout)
+        choiceEar?.complete(null)
+        afterNotice = null
         work.shutdownNow()
         messageEar = false
         followEar = false
@@ -665,7 +681,9 @@ class ListenService : Service() {
             Log.i(TAG, "stt '${text.take(80)}' rms=${String.format(Locale.US, "%.1f", lastRms)}")
             val heardWords = Inbox.fold(text).split(" ").count { it.isNotBlank() }
             Trace.event("stt chars=${text.length} words=$heardWords")
+            val choice = choiceEar
             when {
+                choice != null -> choice.complete(text)
                 messageEar -> onMessagePhrase(text)
                 followEar && !open -> onCommandPhrase(text)
                 else -> onPhrase(text)
@@ -675,6 +693,11 @@ class ListenService : Service() {
             Log.i(TAG, "stt error $error")
             Trace.event("stt error $error")
             if (!alive.get() || mode != HEAR) return
+            // Nothing understood in the short-or-long window: the short answer.
+            choiceEar?.let {
+                it.complete(null)
+                return
+            }
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 lose()
                 return
@@ -797,17 +820,103 @@ class ListenService : Service() {
             val spoken = decide(text)
             main.post {
                 if (!alive.get()) return@post
-                if (spoken.line.isNullOrBlank()) {
-                    next()
+                // The answer waits for the patience notice; it never cuts it off.
+                if (noticeTalking) {
+                    afterNotice = { reply(spoken) }
                 } else {
-                    mode = TALK
-                    EarState.reply.value = spoken.line
-                    VoiceLevel.apply(this, Store(this).voiceVolume)
-                    val voice = speaker
-                    if (voice == null) finishCallLine { next() } else voice.say(spoken.line) { finishCallLine { next() } }
+                    reply(spoken)
                 }
             }
         }
+    }
+
+    private fun reply(spoken: Spoken) {
+        if (!alive.get()) return
+        if (spoken.line.isNullOrBlank()) {
+            next()
+            return
+        }
+        mode = TALK
+        EarState.reply.value = spoken.line
+        VoiceLevel.apply(this, Store(this).voiceVolume)
+        val voice = speaker
+        if (voice == null) finishCallLine { next() } else voice.say(spoken.line) { finishCallLine { next() } }
+    }
+
+    /**
+     * "Short or long?" for history, stories and reading. The question is spoken first and the
+     * recognizer opens only after it, for about 6 s, without the wake phrase. Runs on the work
+     * thread and waits there; nothing goes to xAI until the choice is made.
+     */
+    private fun askLength(): Boolean {
+        val heard = CompletableFuture<String?>()
+        main.post {
+            if (!alive.get()) {
+                heard.complete(null)
+                return@post
+            }
+            choiceEar = heard
+            mode = TALK
+            chime()
+            VoiceLevel.apply(this, Store(this).voiceVolume)
+            main.postDelayed({
+                val voice = speaker
+                if (voice == null) listenChoice() else voice.say(phrase(R.string.length_question)) { listenChoice() }
+            }, 250)
+        }
+        val text = try {
+            heard.get(40, TimeUnit.SECONDS)
+        } catch (_: Exception) {
+            null
+        }
+        val long = wantsLong(text, Store(this).language)
+        Log.i(TAG, "length choice long=$long")
+        Trace.event("length choice long=$long")
+        main.post {
+            choiceEar = null
+            main.removeCallbacks(choiceTimeout)
+            noteChoice(text, long)
+        }
+        return long
+    }
+
+    private fun listenChoice() {
+        val ear = choiceEar ?: return
+        if (!alive.get()) {
+            ear.complete(null)
+            return
+        }
+        main.removeCallbacks(choiceTimeout)
+        main.postDelayed(choiceTimeout, 6_000L)
+        startStt(phrase(R.string.length_question))
+    }
+
+    /** Spoken while the long answer is on its way. The answer is queued behind it. */
+    private fun sayNotice() {
+        val voice = speaker
+        if (!alive.get() || voice == null) {
+            endNotice()
+            return
+        }
+        mode = TALK
+        VoiceLevel.apply(this, Store(this).voiceVolume)
+        voice.say(phrase(R.string.long_notice)) { endNotice() }
+    }
+
+    private fun endNotice() {
+        noticeTalking = false
+        val then = afterNotice ?: return
+        afterNotice = null
+        then()
+    }
+
+    /** The short-or-long answer shows on the heard line it belongs to. */
+    private fun noteChoice(heard: String?, long: Boolean) {
+        val lines = EarState.lines.value
+        val newest = lines.firstOrNull() ?: return
+        val said = heard?.trim()?.ifBlank { null } ?: "…"
+        val text = newest.text + " → " + said + " = " + if (long) "LONG" else "SHORT"
+        EarState.lines.value = listOf(newest.copy(text = text)) + lines.drop(1)
     }
 
     private fun onPhrase(raw: String) {
@@ -902,27 +1011,46 @@ class ListenService : Service() {
         }
         Commands.local(ui, store, useful)?.let { return Spoken(it, false) }
         if (!open) open = true
+        // Consent and key first: no short-or-long question when nothing could be sent.
+        val asked = store.xaiConsent == true && store.bearer().isNotBlank() && isLongForm(useful)
+        val long = asked && askLength()
         EarState.status.value = ui.getString(R.string.status_thinking)
         main.removeCallbacks(stillThinking)
-        main.postDelayed(stillThinking, 5_000L)
-        // One beep the moment the question goes to Grok. Not when consent stops it.
-        // The recognizer has already finished and the voice has not started, so it is not heard back.
-        // The heard line turns green at the same moment.
-        if (store.xaiConsent == true) {
+        if (long) {
+            // The notice plays while the request runs; "still thinking" would cut it off.
             main.post {
-                markSent()
-                if (alive.get()) chime()
+                noticeTalking = true
+                sayNotice()
             }
+        } else {
+            main.postDelayed(stillThinking, 5_000L)
         }
-        Log.i(TAG, "api send chars=${useful.length}")
+        Log.i(TAG, "api send chars=${useful.length} long=$long")
         val answer = try {
-            grok.ask(store, useful, languageName(store), Memory.block(this))
+            grok.ask(store, useful, languageName(store), Memory.block(this), long) {
+                // One beep the moment the question goes to Grok, after the consent and key gates.
+                // The recognizer has finished and the voice has not started, so it is not heard back.
+                // The short-or-long question already had its beep. The heard line turns green now.
+                main.post {
+                    markSent()
+                    if (!asked && alive.get()) chime()
+                }
+            }
         } finally {
             main.removeCallbacks(stillThinking)
+        }
+        // The home screen keeps a banner while the key or the sign-in is refused.
+        EarState.keyBanner.value = when (answer) {
+            GrokClient.Answer.BadKey -> R.string.need_key_invalid_banner
+            GrokClient.Answer.SessionExpired -> R.string.session_expired_banner
+            is GrokClient.Answer.Text -> 0
+            else -> EarState.keyBanner.value
         }
         val line = when (answer) {
             is GrokClient.Answer.Text -> Commands.fromCloud(ui, store, answer.value) ?: answer.value
             GrokClient.Answer.NeedKey -> ui.getString(R.string.need_key)
+            GrokClient.Answer.BadKey -> ui.getString(R.string.need_key_invalid)
+            GrokClient.Answer.SessionExpired -> ui.getString(R.string.session_expired)
             GrokClient.Answer.NeedConsent -> ui.getString(R.string.xai_consent_needed)
             GrokClient.Answer.Fuel -> ui.getString(R.string.fuel)
             GrokClient.Answer.Failed -> ui.getString(R.string.grok_failed)

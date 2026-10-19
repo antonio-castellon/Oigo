@@ -17,6 +17,8 @@
     <string name="hello">Hallo</string>
     <string name="status_thinking">Denkt nach</string>
     <string name="still_thinking">Ich denke noch nach.</string>
+    <string name="length_question">Möchtest du die kurze oder die lange Antwort?</string>
+    <string name="long_notice">Ich suche die Informationen und bin gleich wieder da. Das dauert manchmal etwas länger, hab bitte Geduld.</string>
     <string name="status_model_failed">Das Sprachmodell konnte nicht vorbereitet werden</string>
     <string name="status_idle">Drücke den Knopf. Sag „%1$s“ und was du sagen willst.</string>
     <string name="status_need_mic">Die Mikrofonerlaubnis fehlt.</string>
@@ -35,6 +37,10 @@
     <string name="no_message">Gut. Ich lese sie nicht.</string>
     <string name="bye">Bis dann.</string>
     <string name="need_key">Der API-Schlüssel fehlt. Öffne die Einstellungen und füge den Schlüssel aus der xAI-Konsole ein.</string>
+    <string name="need_key_invalid">Der API-Schlüssel ist ungültig. Prüfe in den Einstellungen den Schlüssel aus der xAI-Konsole.</string>
+    <string name="need_key_invalid_banner">Ungültiger API-Schlüssel. Ändere ihn in den Einstellungen.</string>
+    <string name="session_expired">Deine SuperGrok-Sitzung ist abgelaufen. Melde dich in den Einstellungen erneut an.</string>
+    <string name="session_expired_banner">Sitzung abgelaufen. Bitte erneut anmelden.</string>
     <string name="need_key_banner">Gib den API-Schlüssel in den Einstellungen ein.</string>
     <string name="need_sso_banner">Melde dich mit SuperGrok an, um zuhören zu können.</string>
     <string name="sso_sign_in">Mit SuperGrok anmelden</string>
