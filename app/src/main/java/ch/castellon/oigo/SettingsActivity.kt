@@ -27,6 +27,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -64,6 +65,8 @@ class SettingsActivity : LocalizedActivity() {
     override fun onResume() {
         super.onResume()
         if (::store.isInitialized && (store.telegram || store.whatsapp)) MessageListener.rescan(this)
+        Sso.refresh(this)
+        Sso.resume(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -219,41 +222,29 @@ class SettingsActivity : LocalizedActivity() {
                 )
                 Text(stringResource(R.string.api_key_help), color = ink, fontSize = 15.sp)
             } else {
-                var oauthStatus by remember { mutableStateOf(if (store.oauthAccess.isNotBlank()) "Signed in" else "Not signed in") }
-                Text("SuperGrok SSO (device code, local tokens)", color = ink, fontSize = 15.sp)
-                Text(oauthStatus, color = ink, fontSize = 14.sp)
+                val signedIn by Sso.signedIn.collectAsState()
+                val browserKnown by Sso.browserKnown.collectAsState()
+                val signed = signedIn || store.bearer().isNotBlank()
+                Text(
+                    text = stringResource(
+                        when {
+                            signed -> R.string.sso_status_ok
+                            browserKnown -> R.string.sso_status_waiting
+                            else -> R.string.need_sso_banner
+                        },
+                    ),
+                    color = ink,
+                    fontSize = 15.sp,
+                )
                 Button(onClick = {
                     if (consent != true) {
                         disclosure = true
                         return@Button
                     }
-                    oauthStatus = "Requesting code..."
-                    Thread {
-                        val dc = XaiOAuth.requestDeviceCode()
-                        if (dc == null) {
-                            runOnUiThread { oauthStatus = "Failed to get device code" }
-                            return@Thread
-                        }
-                        runOnUiThread {
-                            oauthStatus = "Go to ${dc.verificationUri}\nCode: ${dc.userCode}"
-                            try {
-                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dc.verificationUriComplete ?: dc.verificationUri)))
-                            } catch (_: Exception) {}
-                        }
-                        val tokens = XaiOAuth.pollForTokens(dc.deviceCode, dc.interval, dc.expiresIn)
-                        runOnUiThread {
-                            if (tokens != null) {
-                                store.oauthAccess = tokens.accessToken
-                                store.oauthRefresh = tokens.refreshToken
-                                store.oauthExpiresAt = System.currentTimeMillis() + tokens.expiresIn * 1000L
-                                oauthStatus = "Signed in"
-                            } else {
-                                oauthStatus = "Sign-in timed out or failed"
-                            }
-                        }
-                    }.start()
+                    Sso.request(this@SettingsActivity, onFail = {}, onCode = {})
+                    finish()
                 }) {
-                    Text(if (store.oauthAccess.isNotBlank()) "Re-sign in" else "Sign in with SuperGrok")
+                    Text(stringResource(R.string.sso_sign_in))
                 }
             }
             var model by mutableStateOf(store.model)

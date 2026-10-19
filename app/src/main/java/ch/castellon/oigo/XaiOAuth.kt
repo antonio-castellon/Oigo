@@ -37,7 +37,7 @@ object XaiOAuth {
 
     fun requestDeviceCode(): DeviceCode? {
         try {
-            val body = "client_id=${enc(CLIENT_ID)}&scope=${enc(SCOPE)}"
+            val body = "client_id=${enc(CLIENT_ID)}&scope=${enc(SCOPE)}&referrer=grok-build"
             val (code, raw) = post(DEVICE_CODE_URL, body)
             if (code !in 200..299) {
                 Log.w(TAG, "device code $code ${raw.take(200)}")
@@ -115,6 +115,7 @@ object XaiOAuth {
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
             conn.setRequestProperty("Accept", "application/json")
+            conn.setRequestProperty("x-grok-client-surface", "ui")
             conn.outputStream.use { it.write(form.toByteArray(Charsets.UTF_8)) }
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
