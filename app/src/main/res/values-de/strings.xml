@@ -126,4 +126,16 @@
     <string name="alarm_confirm">Um %1$s, %2$s. Wenn das stimmt, sag grok, ja.</string>
     <string name="note_confirm">Ich notiere: %1$s. Wenn das stimmt, sag grok, ja.</string>
     <string name="kept_no">Ich speichere es nicht.</string>
+    <string name="xai_consent_title">An xAI gesendete Daten</string>
+    <string name="xai_consent_text">Deine gesprochenen Fragen (als Text), das letzte Gespräch sowie deine gespeicherten Notizen und Wecker werden an xAI (Grok) gesendet, um dir zu antworten. Die Spracherkennung nutzt den Sprachdienst deines Geräts. An den Entwickler wird nichts gesendet.</string>
+    <string name="xai_consent_link">Datenschutzerklärung</string>
+    <string name="xai_consent_accept">Zustimmen</string>
+    <string name="xai_consent_decline">Ablehnen</string>
+    <string name="xai_consent_declined">Du hast abgelehnt. Es wird nichts an xAI gesendet, daher können Fragen nicht beantwortet werden. Du kannst deine Wahl jederzeit überprüfen.</string>
+    <string name="xai_consent_review">Überprüfen</string>
+    <string name="xai_consent_needed">Bevor ich Grok fragen kann, öffne die App und stimme zu, dass deine Fragen an xAI gesendet werden.</string>
+    <string name="xai_consent_show">Hinweis anzeigen</string>
+    <string name="xai_consent_yes">Du hast zugestimmt. Deine Fragen werden an xAI gesendet, um dir zu antworten.</string>
+    <string name="xai_consent_no">Du hast abgelehnt. Es wird nichts an xAI gesendet.</string>
+    <string name="xai_consent_unset">Noch nicht beantwortet. Es wird nichts an xAI gesendet.</string>
 </resources>

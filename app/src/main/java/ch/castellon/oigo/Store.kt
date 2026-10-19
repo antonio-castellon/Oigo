@@ -78,6 +78,11 @@ class Store(context: Context) {
         get() = plain.getBoolean(TELEGRAM, false)
         set(value) = plain.edit().putBoolean(TELEGRAM, value).apply()
 
+    /** Answer to the xAI disclosure: null until asked. Nothing goes to xAI unless it is true. */
+    var xaiConsent: Boolean?
+        get() = if (plain.contains(XAI_CONSENT)) plain.getBoolean(XAI_CONSENT, false) else null
+        set(value) = plain.edit().putBoolean(XAI_CONSENT, value == true).apply()
+
     var model: String
         get() = plain.getString(MODEL, "grok-4.3") ?: "grok-4.3"
         set(value) = plain.edit().putString(MODEL, value.ifBlank { "grok-4.3" }).apply()
@@ -119,7 +124,7 @@ class Store(context: Context) {
             if (access.isBlank()) return ""
             if (System.currentTimeMillis() < oauthExpiresAt - 60_000) return access
             val refresh = oauthRefresh
-            if (refresh.isBlank()) return access
+            if (refresh.isBlank() || xaiConsent != true) return access
             val fresh = XaiOAuth.refresh(refresh)
             if (fresh != null) {
                 oauthAccess = fresh.accessToken
@@ -193,6 +198,7 @@ class Store(context: Context) {
         private const val WHATSAPP = "whatsapp"
         private const val TELEGRAM = "telegram"
         private const val MODEL = "model"
+        private const val XAI_CONSENT = "xai_consent"
         private const val AUTH_MODE = "auth_mode"
         private const val KEY = "api_key"
         private const val OAUTH_ACCESS = "oauth_access"

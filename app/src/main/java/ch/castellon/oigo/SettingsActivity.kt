@@ -155,6 +155,33 @@ class SettingsActivity : LocalizedActivity() {
                 if (!it) EarState.lines.value = emptyList()
             }
             Text(stringResource(R.string.debug_help), color = ink, fontSize = 15.sp)
+            var consent by remember { mutableStateOf(store.xaiConsent) }
+            var disclosure by remember { mutableStateOf(false) }
+            if (disclosure) {
+                XaiDisclosure(
+                    onAnswer = {
+                        Consent.answer(this@SettingsActivity, it)
+                        consent = it
+                        disclosure = false
+                    },
+                    onDismiss = { disclosure = false },
+                )
+            }
+            Text(stringResource(R.string.xai_consent_title), color = ink, fontSize = 18.sp)
+            Text(
+                text = stringResource(
+                    when (consent) {
+                        true -> R.string.xai_consent_yes
+                        false -> R.string.xai_consent_no
+                        null -> R.string.xai_consent_unset
+                    },
+                ),
+                color = ink,
+                fontSize = 15.sp,
+            )
+            Button(onClick = { disclosure = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.xai_consent_show))
+            }
             var authMode by remember { mutableStateOf(store.authMode) }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -196,6 +223,10 @@ class SettingsActivity : LocalizedActivity() {
                 Text("SuperGrok SSO (device code, local tokens)", color = ink, fontSize = 15.sp)
                 Text(oauthStatus, color = ink, fontSize = 14.sp)
                 Button(onClick = {
+                    if (consent != true) {
+                        disclosure = true
+                        return@Button
+                    }
                     oauthStatus = "Requesting code..."
                     Thread {
                         val dc = XaiOAuth.requestDeviceCode()
