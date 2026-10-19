@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -189,6 +190,10 @@ private fun Home(
     val idle = stringResource(R.string.status_idle, called)
     val ink = Color(0xFFE7F0EA)
     val paper = Color(0xFF101418)
+    val signInPage by Sso.page.collectAsState()
+    val userCode by Sso.userCode.collectAsState()
+    val browserKnown by Sso.browserKnown.collectAsState()
+    val signInFailed by Sso.failed.collectAsState()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -209,7 +214,36 @@ private fun Home(
                 modifier = Modifier.size(22.dp),
             )
         }
-        Column(
+        if (!hasKey && signInPage.isNotBlank()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (userCode.isNotBlank()) {
+                    Text(
+                        text = userCode,
+                        color = ink,
+                        fontSize = 48.sp,
+                        fontFamily = FontFamily.Monospace,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 24.dp, end = 24.dp, top = 64.dp, bottom = 8.dp),
+                    )
+                }
+                SsoWeb(
+                    signInPage,
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                )
+            }
+        }
+        if (hasKey || signInPage.isBlank()) Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(bottom = if (debugOn && lines.isNotEmpty()) 132.dp else 0.dp),
@@ -226,21 +260,6 @@ private fun Home(
                 )
                 TextButton(onClick = onReviewConsent, modifier = Modifier.padding(bottom = 12.dp)) {
                     Text(stringResource(R.string.xai_consent_review))
-                }
-            }
-            val signInPage by Sso.page.collectAsState()
-            val browserKnown by Sso.browserKnown.collectAsState()
-            val signInFailed by Sso.failed.collectAsState()
-            if (!hasKey && signInPage.isNotBlank()) {
-                SsoWeb(signInPage)
-                if (ssoStatus.isNotBlank()) {
-                    Text(
-                        text = ssoStatus,
-                        color = ink,
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 16.dp),
-                    )
                 }
             }
             if (!hasKey && signInPage.isBlank()) {

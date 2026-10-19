@@ -2,7 +2,9 @@ package ch.castellon.oigo
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color as AndroidColor
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -11,14 +13,15 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -46,6 +49,9 @@ object Sso {
 
     /** Page of the sign-in that is still open. Empty when there is nothing to show. */
     val page = MutableStateFlow("")
+
+    /** The 8-character device code. The sign-in page fills it in from the address. */
+    val userCode = MutableStateFlow("")
 
     /** True when the WebView already holds a grok or xAI session cookie. */
     val browserKnown = MutableStateFlow(false)
@@ -84,6 +90,7 @@ object Sso {
         store.pendingUntil = System.currentTimeMillis() + code.expiresIn.coerceAtLeast(60) * 1000L
         store.pendingUrl = url
         page.value = url
+        userCode.value = code.userCode.ifBlank { codeIn(url) }
         generation.incrementAndGet()
         kick(app)
     }
@@ -95,11 +102,14 @@ object Sso {
         browserKnown.value = cookiesLookSignedIn()
         if (store.bearer().isNotBlank()) {
             store.clearPending()
-            page.value = ""
+            hidePage()
             signedIn.value = true
             return
         }
-        if (store.pendingUrl.isNotBlank()) page.value = store.pendingUrl
+        if (store.pendingUrl.isNotBlank()) {
+            page.value = store.pendingUrl
+            if (userCode.value.isBlank()) userCode.value = codeIn(store.pendingUrl)
+        }
         if (store.pendingDevice.isBlank()) return
         if (generation.get() == 0) generation.incrementAndGet()
         kick(app)
@@ -133,7 +143,7 @@ object Sso {
                 if (code.isBlank() || left <= 0) {
                     if (gen == generation.get()) {
                         store.clearPending()
-                        page.value = ""
+                        hidePage()
                         if (store.bearer().isBlank()) failed.value = true
                     }
                     return@Thread
@@ -149,7 +159,7 @@ object Sso {
                 if (tokens == null) {
                     Log.w(TAG, "sso no token")
                     store.clearPending()
-                    page.value = ""
+                    hidePage()
                     failed.value = true
                     return@Thread
                 }
@@ -160,7 +170,7 @@ object Sso {
                 )
                 store.authMode = Store.AUTH_OAUTH
                 store.clearPending()
-                page.value = ""
+                hidePage()
                 failed.value = false
                 signedIn.value = store.bearer().isNotBlank()
                 Log.i(TAG, "sso saved ${signedIn.value}")
@@ -169,6 +179,11 @@ object Sso {
                 if (gen != generation.get() && Store(app).pendingDevice.isNotBlank()) kick(app)
             }
         }.start()
+    }
+
+    private fun hidePage() {
+        page.value = ""
+        userCode.value = ""
     }
 }
 
@@ -186,33 +201,52 @@ fun SsoWeb(url: String, modifier: Modifier = Modifier) {
     val opened = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     if (url.isBlank()) return
     AndroidView(
-        modifier = modifier.fillMaxWidth().height(520.dp),
-        factory = { context ->
-            WebView(context).apply {
-                setBackgroundColor(AndroidColor.parseColor("#101418"))
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.javaScriptCanOpenWindowsAutomatically = true
-                settings.setSupportMultipleWindows(true)
-                val cookies = CookieManager.getInstance()
-                cookies.setAcceptCookie(true)
-                cookies.setAcceptThirdPartyCookies(this, true)
-                webChromeClient = SsoChrome()
-                webViewClient = ssoClient(reloadInto = null)
-                loadUrl(url)
-            }
-        },
-        update = { view ->
+        modifier = modifier,
+        factory = { context -> SsoHost(context) },
+        update = { host ->
             if (opened.value != url) {
                 opened.value = url
-                if (view.url != url) view.loadUrl(url)
+                host.page.tag = url
+                loadWhenLaidOut(host.page, url)
             }
         },
     )
 }
 
-/** Login popups stay in this app's cookie jar, as they do in Grok Usage. */
-private class SsoChrome : WebChromeClient() {
+/**
+ * One full-screen frame. X login opens a second window; Compose would leave
+ * that window at zero size, so the popup lives here and fills the frame.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+private class SsoHost(context: Context) : FrameLayout(context) {
+    val page: WebView = WebView(context)
+    private var popup: WebView? = null
+
+    init {
+        setBackgroundColor(AndroidColor.WHITE)
+        prepare(page)
+        page.webViewClient = ssoClient(reloadInto = null, host = this)
+        page.webChromeClient = SsoChrome(this)
+        addView(page, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+    }
+
+    fun showPopup(child: WebView) {
+        popup?.let { closePopup(it) }
+        popup = child
+        addView(child, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        child.bringToFront()
+    }
+
+    fun closePopup(child: WebView) {
+        child.post {
+            removeView(child)
+            if (popup === child) popup = null
+            child.destroy()
+        }
+    }
+}
+
+private class SsoChrome(private val host: SsoHost) : WebChromeClient() {
     override fun onCreateWindow(
         view: WebView,
         isDialog: Boolean,
@@ -221,46 +255,124 @@ private class SsoChrome : WebChromeClient() {
     ): Boolean {
         val transport = resultMsg.obj as? WebView.WebViewTransport ?: return false
         val child = WebView(view.context)
-        child.settings.javaScriptEnabled = true
-        child.settings.domStorageEnabled = true
-        child.settings.setSupportMultipleWindows(true)
-        child.settings.javaScriptCanOpenWindowsAutomatically = true
-        CookieManager.getInstance().setAcceptThirdPartyCookies(child, true)
-        child.webViewClient = ssoClient(reloadInto = view)
+        child.setBackgroundColor(AndroidColor.WHITE)
+        prepare(child)
+        child.settings.userAgentString = view.settings.userAgentString
+        child.webViewClient = ssoClient(reloadInto = host.page, host = host)
         child.webChromeClient = this
-        (view.parent as? ViewGroup)?.addView(
-            child,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-        )
+        host.showPopup(child)
         transport.webView = child
         resultMsg.sendToTarget()
         return true
     }
+
+    override fun onCloseWindow(window: WebView) {
+        if (window !== host.page) host.closePopup(window)
+    }
 }
 
-private fun ssoClient(reloadInto: WebView?): WebViewClient = object : WebViewClient() {
+@SuppressLint("SetJavaScriptEnabled")
+private fun prepare(web: WebView) {
+    web.setBackgroundColor(AndroidColor.WHITE)
+    web.settings.javaScriptEnabled = true
+    web.settings.domStorageEnabled = true
+    web.settings.loadsImagesAutomatically = true
+    web.settings.useWideViewPort = true
+    web.settings.loadWithOverviewMode = false
+    web.settings.builtInZoomControls = false
+    web.settings.displayZoomControls = false
+    web.settings.setSupportZoom(false)
+    web.settings.userAgentString = mobileUserAgent(web.settings.userAgentString)
+    web.settings.javaScriptCanOpenWindowsAutomatically = true
+    web.settings.setSupportMultipleWindows(true)
+    web.settings.mediaPlaybackRequiresUserGesture = true
+    web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+    web.settings.cacheMode = WebSettings.LOAD_DEFAULT
+    hideAppIdentity(web.settings)
+    val cookies = CookieManager.getInstance()
+    cookies.setAcceptCookie(true)
+    cookies.setAcceptThirdPartyCookies(web, true)
+    web.layoutParams = ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT,
+    )
+}
+
+private fun ssoClient(reloadInto: WebView?, host: SsoHost): WebViewClient = object : WebViewClient() {
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val next = request.url?.toString().orEmpty()
         Sso.notePage(next)
-        val scheme = request.url?.scheme?.lowercase().orEmpty()
-        if (scheme != "http" && scheme != "https") return true
-        val host = request.url?.host?.lowercase().orEmpty()
-        if (host.isNotEmpty() && !ssoHostAllowed(host)) return true
         if (reloadInto != null && request.isForMainFrame && (isXaiAccountHome(next) || isGrokReturn(next))) {
             reloadInto.loadUrl(next)
-            view.post {
-                (view.parent as? ViewGroup)?.removeView(view)
-                view.destroy()
-            }
+            host.closePopup(view)
             return true
         }
-        return false
+        val uri = request.url ?: return true
+        return consumeSsoNavigation(view, uri)
     }
 
     override fun onPageFinished(view: WebView?, finished: String?) {
         CookieManager.getInstance().flush()
         Sso.notePage(finished)
     }
+}
+
+private fun loadWhenLaidOut(web: WebView, url: String, attempt: Int = 0) {
+    web.post {
+        if (web.tag != url) return@post
+        if ((web.height <= 0 || web.parent == null) && attempt < 40) {
+            loadWhenLaidOut(web, url, attempt + 1)
+            return@post
+        }
+        if (web.url != url) web.loadUrl(url)
+    }
+}
+
+/** Same mobile identity Grok Usage sends, so X draws a phone form. */
+private fun mobileUserAgent(raw: String?): String {
+    val base = raw?.takeIf { it.isNotBlank() }
+        ?: "Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+    val chrome = Regex("Chrome/[\\d.]+").find(base)?.value ?: "Chrome/131.0.0.0"
+    return "Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) $chrome Mobile Safari/537.36"
+}
+
+private fun hideAppIdentity(settings: WebSettings) {
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+        WebSettingsCompat.setRequestedWithHeaderOriginAllowList(settings, emptySet())
+    }
+}
+
+private fun consumeSsoNavigation(view: WebView, uri: Uri): Boolean {
+    val scheme = uri.scheme?.lowercase() ?: return true
+    if (scheme == "intent") {
+        val parsed = runCatching { Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME) }.getOrNull()
+        val fallback = parsed?.getStringExtra("browser_fallback_url")
+        val data = parsed?.data
+        val target = when {
+            data?.scheme == "https" && data.host?.let { ssoHostAllowed(it) } == true -> data
+            !fallback.isNullOrBlank() -> Uri.parse(fallback)
+            else -> null
+        }
+        if (target != null && (target.scheme == "https" || target.scheme == "http") && ssoHostAllowed(target.host.orEmpty())) {
+            view.loadUrl(target.toString())
+        }
+        return true
+    }
+    if (scheme != "http" && scheme != "https") return true
+    val host = uri.host ?: return true
+    return !ssoHostAllowed(host)
+}
+
+internal fun codeIn(url: String): String {
+    val query = url.substringAfter('?', missingDelimiterValue = "").substringBefore('#')
+    for (part in query.split('&')) {
+        if (part.substringBefore('=') == "user_code") {
+            return runCatching {
+                java.net.URLDecoder.decode(part.substringAfter('='), "UTF-8")
+            }.getOrDefault("")
+        }
+    }
+    return ""
 }
 
 /** Account home, not the sign-in or callback page. Same check as Grok Usage. */
