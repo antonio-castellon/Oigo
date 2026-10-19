@@ -82,7 +82,13 @@ A call to someone in the address book. "Grok, call María." Calls must be turned
 
 ## What the phone needs
 
-Android 9 or newer, a normal ARM phone (64-bit or 32-bit). It needs a microphone, and a network the first time: it downloads a small model for the phrase, and every talk with Grok goes out to the internet. The app is about 45 MB, and the model a little more. The official Grok app is not required. An API key from [console.x.ai](https://console.x.ai) is.
+Android 9 or newer, a normal ARM phone (64-bit or 32-bit). It needs a microphone, and a network the first time: it downloads the listening models, and every talk with Grok goes out to the internet. The app is about 45 MB. The official Grok app is not required. An API key from [console.x.ai](https://console.x.ai) is.
+
+## The first time takes a while
+
+The first time you press **Listen**, the phone downloads the wake-phrase model. The screen says "Downloading the phrase model", and when that download ends, "Installing the phrase model". The pack is about 30 MB. The install percentage is the unpack, and it moves. Leave it until it finishes and the listen screen comes back. It stays on the phone and is not downloaded again.
+
+If **Debug** is on in settings, there is a second, larger download, so the screen can show what was heard before a conversation starts. The line is "Preparing the listening phrases", with a percentage. That pack is about 120 MB. The number climbs while it downloads. When the download ends, the number goes back to 0 and stays there while the phone installs the file. That pause is the install. It can take several minutes. When it finishes, the line goes away. It is kept too, and it does not repeat. With debug off, this second model is not downloaded.
 
 ## How to set it up
 
@@ -90,7 +96,7 @@ Android 9 or newer, a normal ARM phone (64-bit or 32-bit). It needs a microphone
 2. On the phone, allow install from that source and open the file.
 3. Open Oigo and tap the small icon at the upper left.
 4. Paste the key. Change the language, the phrase, or the voice volume if you want. It starts as "hola grok", and the volume at 80%.
-5. Go back and press **Listen**. Allow the microphone and, if asked, notifications.
+5. Go back and press **Listen**. Allow the microphone and, if asked, notifications. The first time it can sit on a percentage for several minutes: that is the download above. Do not close the app.
 6. Say "hola grok". In the conversation, every phrase starts with grok. "Grok, gracias" closes it.
 7. The permissions below are not optional extras. Without them the button is pressed and the phone closes listening as soon as the screen goes off.
 

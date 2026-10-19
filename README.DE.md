@@ -82,7 +82,13 @@ Jemanden aus dem Adressbuch anrufen. „Grok, ruf María an.“ Anrufe müssen i
 
 ## Was das Telefon braucht
 
-Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht ein Mikrofon, und beim ersten Mal Netz: ein kleines Modell für den Satz wird geladen, und jedes Gespräch mit Grok geht ins Internet. Die App ist etwa 45 MB, das Modell ein wenig mehr. Die offizielle Grok-App ist nicht nötig. Ein Schlüssel von [console.x.ai](https://console.x.ai) schon.
+Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht ein Mikrofon, und beim ersten Mal Netz: die Hörmodelle werden geladen, und jedes Gespräch mit Grok geht ins Internet. Die App ist etwa 45 MB. Die offizielle Grok-App ist nicht nötig. Ein Schlüssel von [console.x.ai](https://console.x.ai) schon.
+
+## Das erste Mal dauert
+
+Beim ersten Druck auf **Hören** lädt das Telefon das Modell für den Wecksatz. Auf dem Bildschirm steht „Sprachmodell wird geladen“ und, wenn das Laden fertig ist, „Sprachmodell wird installiert“. Das Paket wiegt etwa 30 MB. Der Prozentsatz der Installation ist das Entpacken, und er bewegt sich. Lass es, bis es fertig ist und der Hörbildschirm zurückkommt. Es bleibt auf dem Telefon und wird nicht noch einmal geladen.
+
+Wenn in den Einstellungen **Fehlersuche** an ist, gibt es einen zweiten, größeren Download, damit der Bildschirm zeigen kann, was vor dem Gespräch gehört wurde. Die Zeile heißt „Hörsätze werden vorbereitet“, mit einem Prozentsatz. Dieses Paket wiegt etwa 120 MB. Die Zahl steigt während des Ladens. Wenn das Laden endet, geht die Zahl auf 0 zurück und bleibt dort, während das Telefon die Datei installiert. Diese Pause ist die Installation. Sie kann mehrere Minuten dauern. Danach verschwindet die Zeile. Auch dieses Modell bleibt gespeichert und wird nicht wiederholt. Mit ausgeschalteter Fehlersuche wird es nicht geladen.
 
 ## So wird sie eingerichtet
 
@@ -90,7 +96,7 @@ Android 9 oder neuer, ein gewöhnliches ARM-Telefon (64 oder 32 Bit). Es braucht
 2. Erlaube auf dem Telefon die Installation aus dieser Quelle und öffne die Datei.
 3. Öffne Oigo und tippe das kleine Symbol oben links.
 4. Füge den Schlüssel ein. Sprache, Satz oder Lautstärke der Stimme kannst du ändern. Voreingestellt sind „hola grok“ und 80 % Lautstärke.
-5. Geh zurück und drücke **Hören**. Erlaube das Mikrofon und, falls gefragt, die Benachrichtigungen.
+5. Geh zurück und drücke **Hören**. Erlaube das Mikrofon und, falls gefragt, die Benachrichtigungen. Beim ersten Mal kann ein Prozentsatz mehrere Minuten stehen bleiben: das ist der Download oben. Schließ die App nicht.
 6. Sag „hola grok“. Im Gespräch beginnt jeder Satz mit grok. „Grok, gracias“ schließt es.
 7. Die Rechte unten sind kein Zusatz. Ohne sie wird der Knopf gedrückt und das Telefon schließt das Zuhören, sobald der Bildschirm aus geht.
 
