@@ -88,7 +88,7 @@
     <string name="wake_name">Name</string>
     <string name="wake_name_help">Er wird als Phoneme gespeichert, keine Aufnahme deiner Stimme. Er gilt, wenn du wieder auf Hören tippst.</string>
     <string name="debug_mode">Fehlersuche</string>
-    <string name="debug_help">Unten passen sieben Sätze in kleiner Schrift. Rot bleibt auf dem Telefon. Grün geht an Grok.</string>
+    <string name="debug_help">Der neueste Satz steht oben. Lange Sätze gehen in die nächste Zeile. Rot bleibt auf dem Telefon. Grün geht an Grok.</string>
     <string name="api_key">xAI-API-Schlüssel</string>
     <string name="api_key_help">Die offizielle Grok-App teilt ihre Anmeldung nicht. Füge einmal den Schlüssel von console.x.ai ein. Er bleibt auf diesem Telefon.</string>
     <string name="model">Modell</string>

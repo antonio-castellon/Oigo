@@ -11,11 +11,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -251,9 +251,16 @@ private fun Home(
         }
         if (hasKey || signInPage.isBlank()) Column(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(bottom = if (debugOn && lines.isNotEmpty()) 132.dp else 0.dp),
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+        ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             if (consent == false) {
                 Text(
@@ -325,7 +332,11 @@ private fun Home(
                 shape = CircleShape,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (listening) Color(0xFF1B8F45) else Color(0xFFC62828),
+                    containerColor = when {
+                        listening && inConversation -> Color(0xFFEF6C00)
+                        listening -> Color(0xFF1B8F45)
+                        else -> Color(0xFFC62828)
+                    },
                     contentColor = Color(0xFFF4FFF7),
                     disabledContainerColor = Color(0xFF2C3532),
                     disabledContentColor = Color(0xFF8E9B94),
@@ -387,6 +398,32 @@ private fun Home(
                     modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 28.dp),
                 )
             }
+            if (debugOn && (listening || lines.isNotEmpty())) {
+                Column(
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp)
+                        .fillMaxWidth()
+                        .height(112.dp)
+                        .clipToBounds(),
+                    verticalArrangement = Arrangement.Top,
+                ) {
+                    lines.forEach { line ->
+                        val color = if (line.sent) Color(0xFF1B8F45) else Color(0xFFC62828)
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(text = "•", color = color, fontSize = 13.sp, lineHeight = 16.sp)
+                            Text(
+                                text = line.text,
+                                color = color,
+                                fontSize = 13.sp,
+                                lineHeight = 16.sp,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 6.dp),
+                            )
+                        }
+                    }
+                }
+            }
             if (hasKey && step != null) {
                 LinearProgressIndicator(
                     progress = { step.percent / 100f },
@@ -418,31 +455,6 @@ private fun Home(
                 )
             }
         }
-        if (debugOn && lines.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                    .fillMaxWidth()
-                    .heightIn(max = 124.dp)
-                    .clipToBounds(),
-            ) {
-                // Newest on top, always in view. Long phrases wrap under their own text, not under the bullet.
-                lines.forEach { line ->
-                    val color = if (line.sent) Color(0xFF1B8F45) else Color(0xFFC62828)
-                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
-                        Text(text = "•", color = color, fontSize = 13.sp, lineHeight = 16.sp)
-                        Text(
-                            text = line.text,
-                            color = color,
-                            fontSize = 13.sp,
-                            lineHeight = 16.sp,
-                            modifier = Modifier.weight(1f).padding(start = 6.dp),
-                        )
-                    }
-                }
-            }
         }
     }
 }

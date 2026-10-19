@@ -14,8 +14,8 @@ object EarState {
     /** String id of the refused-key or expired-session banner. 0 when there is none. */
     val keyBanner = MutableStateFlow(0)
 
-    /** One heard phrase. Green on screen when it was sent to Grok. */
-    data class HeardLine(val text: String, val sent: Boolean)
+    /** One heard phrase. Green on screen when it was sent to Grok. A partial line is still being heard. */
+    data class HeardLine(val text: String, val sent: Boolean, val partial: Boolean = false)
 
     /** Last heard phrases, newest first. Shown only while debug is on. */
     val lines = MutableStateFlow<List<HeardLine>>(emptyList())

@@ -68,9 +68,14 @@ class GrokClient(context: Context) {
         } else {
             "\nEarlier today, in short: $earlier. Use that only as background. The recent lines are the live talk."
         }
+        val lengthRule = if (long) {
+            "The person asked for the long version. Tell the whole story or the whole explanation. Stop when it is finished, not after a fixed number of words."
+        } else {
+            "Speak in one or two short sentences. If the person asks for an explanation, you may use up to 80 words."
+        }
         val system = """
             You are the voice of a home assistant. Answer in $languageName.
-            Speak in one or two short sentences. If the person asks for an explanation, you may use up to 80 words.
+            $lengthRule
             No markdown, no lists, no emoji, no links.
             ${if (lookup) "Search before you answer. Dates, history, weather, news, prices and who someone is must come from the search, not from memory." else "This turn has no web search. Answer the chat, the story, or the tone. Do not invent a date, a price, or a historical fact."}$memory$day
             If, and only if, the person asks to call someone, to read recent messages, or to send a WhatsApp message, answer with exactly one line and nothing else:
@@ -135,7 +140,7 @@ class GrokClient(context: Context) {
     private fun send(key: String, body: JSONObject, route: Route, lookup: Boolean, sso: Boolean, sizes: String): Answer {
         val model = route.model
         var payload = body.toString().toByteArray(Charsets.UTF_8)
-        // The long route has one try inside its 30 s; the normal route keeps its retries.
+        // The long route has one try. The normal route keeps its retries.
         val tries = if (route.long) 1 else 2
         for (attempt in 1..tries) {
             val (code, raw) = post(key, payload, route)
@@ -371,11 +376,12 @@ class GrokClient(context: Context) {
 data class Route(val model: String, val effort: String?, val connectMs: Int, val readMs: Int, val long: Boolean)
 
 /**
- * The long answer is grok-4.7 with high effort, at most 30 s in total (connect + read), then the
- * normal route. The normal route is the model in Settings, blank meaning grok-4.3.
+ * The long answer is grok-4.7 with high effort. The read wait is only a dead-socket guard:
+ * the answer is finished when the response arrives, not when a short timer expires.
+ * The normal route is the model in Settings, blank meaning grok-4.3.
  */
 internal fun routeFor(settingsModel: String, lookup: Boolean, long: Boolean): Route {
-    if (long) return Route("grok-4.7", "high", connectMs = 5_000, readMs = 25_000, long = true)
+    if (long) return Route("grok-4.7", "high", connectMs = 20_000, readMs = 180_000, long = true)
     val model = settingsModel.trim().ifBlank { "grok-4.3" }
     return Route(model, reasoningEffort(model, lookup), connectMs = 20_000, readMs = 35_000, long = false)
 }

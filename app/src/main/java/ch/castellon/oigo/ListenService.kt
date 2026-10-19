@@ -140,6 +140,7 @@ class ListenService : Service() {
     override fun onCreate() {
         super.onCreate()
         grok = GrokClient(applicationContext)
+        java.io.File(filesDir, "trace-asr").deleteRecursively()
         live = this
         Trace.attach(this)
         Notifier.ensure(this)
@@ -446,6 +447,17 @@ class ListenService : Service() {
             decodes += ready
             val result = engine.getResult(heard)
             val keyword = result.keyword
+            if (EarState.debug.value && keyword.isBlank()) {
+                val partial = traceText(result.tokens)
+                if (partial.isNotBlank() && partial != lastPartial) {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    if (now - lastPartialAt >= 150L) {
+                        lastPartial = partial
+                        lastPartialAt = now
+                        main.post { paintPartial(partial) }
+                    }
+                }
+            }
             if (samples >= 32000) {
                 val rms = kotlin.math.sqrt(energy / samples)
                 Log.i(TAG, "mic rms=${String.format(Locale.US, "%.4f", rms)} decodes=$decodes")
@@ -463,9 +475,12 @@ class ListenService : Service() {
                     },
                 )
                 engine.reset(heard)
+                lastPartial = ""
                 val yesNo = keyword.contains("GROK_YES") || keyword.contains("GROK_NO")
                 if (yesNo && !Inbox.hasPending()) continue
+                val heardLine = keyword.substringBefore(':').trim().ifBlank { keyword.substringBefore('@').trim() }
                 main.post {
+                    remember(heardLine, false)
                     when {
                         keyword.contains("GROK_YES") -> heardAnswer(true)
                         keyword.contains("GROK_NO") -> heardAnswer(false)
@@ -582,6 +597,8 @@ class ListenService : Service() {
     }
 
     private fun chime() {
+        // The recognizer hush leaves music at zero. Restore it or this beep is silent.
+        VoiceLevel.apply(this, Store(this).voiceVolume)
         releaseChime()
         val tone = try {
             android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 90)
@@ -857,7 +874,6 @@ class ListenService : Service() {
             }
             choiceEar = heard
             mode = TALK
-            chime()
             VoiceLevel.apply(this, Store(this).voiceVolume)
             main.postDelayed({
                 val voice = speaker
@@ -1011,6 +1027,8 @@ class ListenService : Service() {
         }
         Commands.local(ui, store, useful)?.let { return Spoken(it, false) }
         if (!open) open = true
+        // The phrase is for Grok. Beep now, before the short-or-long question and before the request.
+        main.post { if (alive.get()) chime() }
         // Consent and key first: no short-or-long question when nothing could be sent.
         val asked = store.xaiConsent == true && store.bearer().isNotBlank() && isLongForm(useful)
         val long = asked && askLength()
@@ -1028,13 +1046,8 @@ class ListenService : Service() {
         Log.i(TAG, "api send chars=${useful.length} long=$long")
         val answer = try {
             grok.ask(store, useful, languageName(store), Memory.block(this), long) {
-                // One beep the moment the question goes to Grok, after the consent and key gates.
-                // The recognizer has finished and the voice has not started, so it is not heard back.
-                // The short-or-long question already had its beep. The heard line turns green now.
-                main.post {
-                    markSent()
-                    if (!asked && alive.get()) chime()
-                }
+                // The beep already played when the phrase was accepted. The line turns green now.
+                main.post { markSent() }
             }
         } finally {
             main.removeCallbacks(stillThinking)
@@ -1200,13 +1213,40 @@ class ListenService : Service() {
     /** Screen and spoken lines follow the language chosen in the app. */
     private fun phrase(id: Int, vararg args: Any): String = localized().getString(id, *args)
 
+    /** Tokens the wake ear already decoded. Blank symbols are not a phrase. */
+    private fun traceText(tokens: Array<String>): String {
+        val words = ArrayList<String>(tokens.size)
+        for (token in tokens) {
+            val word = token.trim()
+            if (word.isEmpty() || word == "<blk>" || word == "<blank>" || word == "<eps>" || word == "<unk>") continue
+            words += word
+        }
+        return words.joinToString(" ")
+    }
+
     /** Keeps seven heard phrases, newest first. Red on screen when the phrase stayed on the phone. */
     private fun remember(line: String, sent: Boolean) {
         if (!EarState.debug.value) return
         val clean = line.trim().replace('\n', ' ')
         if (clean.isBlank()) return
-        EarState.lines.value = (listOf(EarState.HeardLine(clean, sent)) + EarState.lines.value).take(7)
+        val kept = EarState.lines.value.dropPartial()
+        EarState.lines.value = (listOf(EarState.HeardLine(clean, sent)) + kept).take(7)
     }
+
+    /** The ear is still hearing this. It replaces the open line and does not open a conversation. */
+    private fun paintPartial(text: String) {
+        if (!EarState.debug.value) return
+        val clean = text.trim()
+        if (clean.isBlank()) return
+        val kept = EarState.lines.value.dropPartial()
+        EarState.lines.value = (listOf(EarState.HeardLine(clean, false, partial = true)) + kept).take(7)
+    }
+
+    private fun List<EarState.HeardLine>.dropPartial(): List<EarState.HeardLine> =
+        if (firstOrNull()?.partial == true) drop(1) else this
+
+    private var lastPartial = ""
+    private var lastPartialAt = 0L
 
     /** The newest heard phrase went to Grok: green on screen. */
     private fun markSent() {
