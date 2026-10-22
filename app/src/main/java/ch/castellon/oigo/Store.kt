@@ -28,6 +28,10 @@ class Store(context: Context) {
         get() = plain.getString(NAME, "grok") ?: "grok"
         set(value) = plain.edit().putString(NAME, value.take(32)).apply()
 
+    var bootStart: Boolean
+        get() = plain.getBoolean(BOOT_START, false)
+        set(value) = plain.edit().putBoolean(BOOT_START, value).apply()
+
     var debug: Boolean
         get() = plain.getBoolean(DEBUG, false)
         set(value) = plain.edit().putBoolean(DEBUG, value).apply()
@@ -230,6 +234,7 @@ class Store(context: Context) {
         private const val WAKE = "wake"
         private const val NAME = "name"
         private const val DEBUG = "debug"
+        private const val BOOT_START = "boot_start"
         private const val LANGUAGE = "language"
         private const val REPEATS = "repeats"
         private const val MINUTES = "minutes"

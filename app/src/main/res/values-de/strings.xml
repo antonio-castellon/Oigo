@@ -107,7 +107,9 @@
     <string name="notification_access">Erlaube den Benachrichtigungszugriff, damit WhatsApp- oder Telegram-Hinweise sichtbar sind.</string>
     <string name="battery">Akku</string>
     <string name="battery_help">Ohne Akkuoptimierung bleibt die Hör-Benachrichtigung länger. Wenn Android den Prozess beendet, bleibt das Mikrofon aus, bis du den Knopf drückst.</string>
-    <string name="open_battery">Akku-Einstellungen</string>
+    <string name="boot_start">Beim Einschalten des Telefons starten</string>
+    <string name="background">Im Hintergrund erlauben</string>
+    <string name="boot_ready">Das Telefon wurde eingeschaltet. Tippe hier, damit Oigo zuhört.</string>
     <string name="open_listener">Benachrichtigungszugriff</string>
     <string name="context_hours">Stunden, die das Gespräch behält</string>
     <string name="context_help">So lange bleiben eine kurze Zusammenfassung und die letzten Sätze. Abschied und Stille beenden das Zuhören, nicht den Tag. „Grok, vergiss“ löscht das Gespräch. Notizen und Wecker bleiben.</string>

@@ -48,6 +48,7 @@ class SettingsActivity : LocalizedActivity() {
     private var whatsappOn by mutableStateOf(false)
     private var telegramOn by mutableStateOf(false)
     private var traceNote by mutableStateOf("")
+    private var batteryFree by mutableStateOf(false)
 
     private val callPerm = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         val ok = granted[Manifest.permission.CALL_PHONE] == true &&
@@ -64,6 +65,7 @@ class SettingsActivity : LocalizedActivity() {
 
     override fun onResume() {
         super.onResume()
+        batteryFree = getSystemService(android.os.PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
         if (::store.isInitialized && (store.telegram || store.whatsapp)) MessageListener.rescan(this)
         Sso.refresh(this)
         Sso.resume(this)
@@ -330,10 +332,13 @@ class SettingsActivity : LocalizedActivity() {
             Button(onClick = ::openListener, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.open_listener))
             }
-            Text(stringResource(R.string.battery_help), color = ink, fontSize = 15.sp)
-            Button(onClick = ::openBattery, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.open_battery))
+            var bootStart by remember { mutableStateOf(store.bootStart) }
+            Toggle(stringResource(R.string.boot_start), bootStart) {
+                bootStart = it
+                store.bootStart = it
             }
+            Toggle(stringResource(R.string.background), batteryFree) { openBattery() }
+            Text(stringResource(R.string.battery_help), color = ink, fontSize = 15.sp)
             Button(onClick = ::stopListening, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.stop))
             }
@@ -442,15 +447,7 @@ class SettingsActivity : LocalizedActivity() {
     }
 
     private fun openBattery() {
-        val intent = Intent(
-            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-            Uri.parse("package:$packageName"),
-        )
-        try {
-            startActivity(intent)
-        } catch (_: Exception) {
-            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-        }
+        startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
     }
 
     private fun stopListening() {

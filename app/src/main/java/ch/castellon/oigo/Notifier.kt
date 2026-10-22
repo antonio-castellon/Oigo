@@ -16,6 +16,7 @@ object Notifier {
     const val ALERT_ID = 43
     const val REMINDER_ID = 45
     const val NOTICE_ID = 46
+    const val BOOT_ID = 47
     private const val REMINDER = "reminder"
 
     fun ensure(context: Context) {
@@ -43,6 +44,19 @@ object Notifier {
 
     fun reminder(context: Context, text: String): Notification {
         return base(context, REMINDER, text).build()
+    }
+
+    /** Tap opens the app ready to listen. Nothing starts until then. */
+    fun bootReady(context: Context) {
+        ensure(context)
+        val open = PendingIntent.getActivity(
+            context,
+            3,
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_LISTEN, true),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val note = base(context, ALERT, context.getString(R.string.boot_ready)).setContentIntent(open).setAutoCancel(true)
+        context.getSystemService(NotificationManager::class.java).notify(BOOT_ID, note.build())
     }
 
     private fun base(context: Context, channel: String, text: String): NotificationCompat.Builder {

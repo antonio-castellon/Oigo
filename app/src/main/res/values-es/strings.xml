@@ -107,7 +107,9 @@
     <string name="notification_access">Permite el acceso a las notificaciones para ver los avisos de WhatsApp o Telegram.</string>
     <string name="battery">Batería</string>
     <string name="battery_help">Quitar la optimización de batería alarga la notificación de escucha. Si Android mata el proceso, el micrófono no vuelve hasta que pulses el botón.</string>
-    <string name="open_battery">Ajustes de batería</string>
+    <string name="boot_start">Iniciar al encender el teléfono</string>
+    <string name="background">Permitir en segundo plano</string>
+    <string name="boot_ready">El teléfono se encendió. Toca aquí para que Oigo empiece a escuchar.</string>
     <string name="open_listener">Acceso a notificaciones</string>
     <string name="context_hours">Horas que la charla recuerda</string>
     <string name="context_help">En ese tiempo se guarda un resumen corto y las últimas frases. Gracias y el silencio cierran la escucha, no el día. «Grok, olvida» sí borra la charla. Lo apuntado y las alarmas se quedan.</string>
