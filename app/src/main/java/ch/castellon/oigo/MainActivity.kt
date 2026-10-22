@@ -81,6 +81,7 @@ class MainActivity : LocalizedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        Memory.reschedule(this)
         setContent {
             val liveSignIn by Sso.signedIn.collectAsState()
             LaunchedEffect(liveSignIn) {

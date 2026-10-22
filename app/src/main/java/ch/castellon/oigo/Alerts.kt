@@ -49,14 +49,3 @@ class AlertReceiver : BroadcastReceiver() {
         }
     }
 }
-
-class BootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        Memory.reschedule(context)
-        val store = Store(context)
-        if (!store.armed) return
-        store.armed = false
-        Notifier.remind(Store(context).localized(context))
-    }
-}
