@@ -76,7 +76,7 @@ object Memory {
         return if (item.alarm) saveAlarm(context, ui, item.at, item.text) else saveNote(context, ui, item.text)
     }
 
-    /** After a reboot, future alarms are armed again. One that just passed still rings. */
+    /** When the app opens after a reboot, future alarms are armed again. One that just passed still rings. */
     fun reschedule(context: Context) = synchronized(lock) {
         val root = read(context)
         val alarms = root.optJSONArray("alarms") ?: return

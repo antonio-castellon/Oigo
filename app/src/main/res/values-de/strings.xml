@@ -4,7 +4,6 @@
     <string name="channel_listen">Hören</string>
     <string name="channel_alert">Mikrofonhinweis</string>
     <string name="stop_listening">Stopp</string>
-    <string name="boot_remind">Das Telefon wurde neu gestartet. Öffne Oigo und drücke den Knopf. Das Mikrofon startet nicht von selbst.</string>
     <string name="mic_stopped">Das Mikrofon hört nicht zu. Öffne die App und drücke den Knopf.</string>
     <string name="status_preparing">Mikrofon wird vorbereitet</string>
     <string name="status_downloading">Sprachmodell wird geladen, %1$d%%</string>

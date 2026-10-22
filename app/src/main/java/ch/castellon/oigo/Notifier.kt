@@ -14,7 +14,6 @@ object Notifier {
     const val ALERT = "alert"
     const val LISTEN_ID = 42
     const val ALERT_ID = 43
-    const val REMIND_ID = 44
     const val REMINDER_ID = 45
     const val NOTICE_ID = 46
     private const val REMINDER = "reminder"
@@ -44,12 +43,6 @@ object Notifier {
 
     fun reminder(context: Context, text: String): Notification {
         return base(context, REMINDER, text).build()
-    }
-
-    fun remind(context: Context) {
-        ensure(context)
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager.notify(REMIND_ID, base(context, ALERT, context.getString(R.string.boot_remind)).build())
     }
 
     private fun base(context: Context, channel: String, text: String): NotificationCompat.Builder {
