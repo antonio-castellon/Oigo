@@ -78,6 +78,15 @@ class MainActivity : LocalizedActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    companion object {
+        const val EXTRA_LISTEN = "listen"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -106,6 +115,10 @@ class MainActivity : LocalizedActivity() {
         if (consent == null) disclosure = true
         EarState.debug.value = Store(this).debug
         if (!hasKey && EarState.listening.value) ListenService.stop(this)
+        if (intent.getBooleanExtra(EXTRA_LISTEN, false)) {
+            intent.removeExtra(EXTRA_LISTEN)
+            if (!EarState.listening.value) listen()
+        }
     }
 
     private fun listen() {

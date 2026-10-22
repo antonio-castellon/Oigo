@@ -20,8 +20,8 @@ android {
         applicationId = "ch.castellon.oigo"
         minSdk = 28
         targetSdk = 36
-        versionCode = 67
-        versionName = "1.0.66"
+        versionCode = 68
+        versionName = "1.0.67"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }

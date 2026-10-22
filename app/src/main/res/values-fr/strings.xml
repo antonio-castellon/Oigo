@@ -107,7 +107,9 @@
     <string name="notification_access">Autorisez l\'accès aux notifications pour voir les avis WhatsApp ou Telegram.</string>
     <string name="battery">Batterie</string>
     <string name="battery_help">Retirer l\'optimisation de batterie garde plus longtemps la notification d\'écoute. Si Android tue le processus, le micro reste fermé jusqu\'au bouton.</string>
-    <string name="open_battery">Réglages batterie</string>
+    <string name="boot_start">Démarrer à l\'allumage du téléphone</string>
+    <string name="background">Autoriser en arrière-plan</string>
+    <string name="boot_ready">Le téléphone s\'est allumé. Touchez ici pour qu\'Oigo commence à écouter.</string>
     <string name="open_listener">Accès aux notifications</string>
     <string name="context_hours">Heures dont la conversation se souvient</string>
     <string name="context_help">Pendant ce temps restent un court résumé et les dernières phrases. Au revoir et le silence ferment l\'écoute, pas la journée. «Grok, oublie» efface la conversation. Les notes et les alarmes restent.</string>

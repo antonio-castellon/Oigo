@@ -107,7 +107,9 @@
     <string name="notification_access">Allow notification access so WhatsApp or Telegram notices can be seen.</string>
     <string name="battery">Battery</string>
     <string name="battery_help">Leaving battery optimization keeps the listening notification alive longer. If Android kills the process, the microphone stays off until you press the button.</string>
-    <string name="open_battery">Battery settings</string>
+    <string name="boot_start">Start when the phone turns on</string>
+    <string name="background">Allow in background</string>
+    <string name="boot_ready">The phone turned on. Tap here so Oigo starts listening.</string>
     <string name="open_listener">Notification access</string>
     <string name="context_hours">Hours the chat remembers</string>
     <string name="context_help">For that long a short summary and the latest lines stay. Goodbye and silence close listening, not the day. «Grok, forget» clears the chat. Saved notes and alarms stay.</string>
