@@ -146,3 +146,13 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 Se aceptan ideas, fallos y cambios. El botón grande y la privacidad de la frase son la pieza que no quiero perder. Antes de un cambio, mira [cómo colaborar](CONTRIBUTING.md). El [trato entre personas](CODE_OF_CONDUCT.md) es corto. Una clave o un fallo de seguridad no se escribe en un issue abierto: va por [SECURITY.md](SECURITY.md).
 
 MIT. Lo de sherpa-onnx va con su propia licencia Apache-2.0, en [NOTICE](NOTICE). El resto está en [LICENSE](LICENSE).
+
+## Notice and Disclaimer
+
+NOTICE AND DISCLAIMER: This software automatically retrieves, accesses or interacts with external materials. Those retrieved materials are not distributed with this software and are governed solely by separate terms, conditions and licenses. You are solely responsible for finding, reviewing and complying with all applicable terms, conditions, and licenses, and for verifying the security, integrity and suitability of any retrieved materials for your specific use case. This software is provided "AS IS", without warranty of any kind. The author makes no representations or warranties regarding any retrieved materials, and assumes no liability for any losses, damages, liabilities or legal consequences from your use or inability to use this software or any retrieved materials. Use this software and the retrieved materials at your own risk.
+
+External materials Oigo interacts with at run time:
+
+- The xAI Grok API (api.x.ai) and xAI sign-in (accounts.x.ai, auth.x.ai), with your own key and account, under xAI's terms.
+- The sherpa-onnx keyword-spotting model, downloaded on the phone the first time listening starts, under its own license.
+- The sherpa-onnx and ONNX Runtime native libraries, downloaded at build time, under their own licenses (see NOTICE).
